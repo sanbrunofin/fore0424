@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>San Bruno General Fund Forecast</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d1520; overflow-x: hidden; }
+    #root { min-height: 100vh; }
+    button:focus { outline: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+
+
+
+const DARK = "#0d1520";
+const CARD_BG = "#141e2e";
+const BORDER = "#1e2d42";
+const RED = "#e63946";
+const RED_LIGHT = "#ff6b6b";
+const AMBER = "#f4a261";
+const GREEN = "#2a9d8f";
+const GREEN_LIGHT = "#63d6c4";
+const PURPLE = "#8338ec";
+const GRAY = "#6b7f95";
+const WHITE = "#e8ecf1";
+const BLUE = "#4895ef";
+
+const RESERVE_CAP = 20.0;
+const YEARS = ["FY27", "FY28", "FY29", "FY30", "FY31", "FY32"];
+
+const baseData = [
+  { year: "FY27", rev: 77.71, exp: 77.16 },
+  { year: "FY28", rev: 79.49, exp: 81.31 },
+  { year: "FY29", rev: 81.47, exp: 85.21 },
+  { year: "FY30", rev: 83.08, exp: 87.98 },
+  { year: "FY31", rev: 84.76, exp: 90.85 },
+  { year: "FY32", rev: 86.50, exp: 93.81 },
+];
+
+const departments = [
+  { id: "police", label: "Police", sb: 17.34, ftes: 72.00, icon: "🛡" },
+  { id: "fire", label: "Fire", sb: 12.17, ftes: 40.00, icon: "🚒" },
+  { id: "commsvc", label: "Comm Svcs", sb: 4.14, ftes: 25.70, icon: "🏛" },
+  { id: "pw", label: "Public Wks", sb: 2.72, ftes: 21.51, icon: "🔧" },
+  { id: "admin", label: "Admin Svcs", sb: 2.98, ftes: 15.15, icon: "📊" },
+  { id: "cm", label: "City Mgr", sb: 1.49, ftes: 7.35, icon: "🏢" },
+  { id: "cd", label: "Comm Dev", sb: 0.24, ftes: 1.15, icon: "📋" },
+];
+const totalSB = departments.reduce((s, d) => s + d.sb, 0);
+const totalFTEs = departments.reduce((s, d) => s + d.ftes, 0);
+
+const riskItems = [
+  { id: "vlf", label: "VLF Backfill", amount: 3.0, expReduction: 0, color: RED, detail: "State formula — $3M revenue loss" },
+  { id: "vlf2", label: "VLF Backfill II", amount: 4.0, expReduction: 0, color: RED, detail: "Additional VLF reduction — $4M revenue loss" },
+  { id: "trsa", label: "TRSA", amount: 8.0, expReduction: 4.0, color: RED, detail: "–$8M revenue, –$4M expenditure (net –$4M)" },
+  { id: "eraf", label: "Excess ERAF", amount: 2.0, expReduction: 0, color: RED, detail: "State Controller audit — $2M revenue loss" },
+  { id: "cardroom", label: "Cardroom", amount: 3.4, expReduction: 0, color: RED, detail: "SB 549 litigation — $3.4M revenue loss" },
+];
+
+const opportunityItems = [
+  { id: "measure6", label: "$6M Revenue Measure", amount: 6.0, growth: 0.045, color: GREEN, detail: "Major tax measure, grows 4.5%/yr. Revenue begins 2 yrs after election." },
+  { id: "measure2", label: "$2M Revenue Measure", amount: 2.0, growth: 0.045, color: GREEN, detail: "Moderate tax measure, grows 4.5%/yr. Revenue begins 2 yrs after election." },
+  { id: "measure1", label: "$1M Revenue Measure", amount: 1.0, growth: 0.045, color: GREEN_LIGHT, detail: "Smaller tax measure, grows 4.5%/yr. Revenue begins 2 yrs after election." },
+];
+
+const ELECTION_YEARS = ["2026", "2028", "2030"];
+const ELECTION_TO_FY = { "2026": "FY28", "2028": "FY30", "2030": "FY32" };
+
+function fmt(n) { return `$${Math.abs(n).toFixed(1)}M`; }
+
+function KPICard({ label, value, sub, color, accent }) {
+  return (
+    <div style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "8px 12px", flex: 1, borderTop: `3px solid ${accent || BORDER}` }}>
+      <div style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: 1.5, color: GRAY, marginBottom: 1 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: color || WHITE, lineHeight: 1.2 }}>{value}</div>
+      {sub && <div style={{ fontSize: 8, color: GRAY, marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function YearSelector({ value, onChange, color, label, options: customOptions }) {
+  const options = ["Off", ...(customOptions || YEARS)];
+  return (
+    <div style={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "flex-start" }}>
+      {options.map(opt => {
+        const isActive = value === opt;
+        const isOff = opt === "Off";
+        return (
+          <button key={opt} onClick={() => onChange(opt)} style={{
+            padding: "2px 5px", borderRadius: 3, border: "none",
+            fontSize: 8, fontWeight: 700, cursor: "pointer",
+            background: isActive ? (isOff ? "#2a2a3a" : `${color}33`) : "rgba(255,255,255,0.04)",
+            color: isActive ? (isOff ? GRAY : color) : "#444",
+            outline: isActive ? `1px solid ${isOff ? "#444" : color}` : "none",
+            transition: "all 0.15s",
+          }}>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TimingPanel({ title, items, timings, onTimingChange, accentColor, yearOptions }) {
+  const isRisk = accentColor === RED;
+  const activeCount = Object.values(timings).filter(v => v !== "Off").length;
+
+  return (
+    <div style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1.5, color: accentColor, marginBottom: 6, fontWeight: 700 }}>{title}</div>
+      <div style={{ flex: 1 }}>
+        {items.map(item => {
+          const timing = timings[item.id] || "Off";
+          const isActive = timing !== "Off";
+          return (
+            <div key={item.id} style={{
+              padding: "6px 8px", marginBottom: 5, borderRadius: 5,
+              background: isActive ? `${item.color}10` : "rgba(255,255,255,0.015)",
+              border: `1px solid ${isActive ? item.color + "35" : BORDER}`,
+              transition: "all 0.2s",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <div>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: isActive ? "#fff" : GRAY }}>{item.label}</span>
+                  <span style={{ fontSize: 8, color: isActive ? `${item.color}99` : "#444", marginLeft: 6 }}>{item.detail}</span>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: isActive ? item.color : "#333", flexShrink: 0 }}>
+                  {isRisk ? "–" : "+"}{fmt(item.amount)}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 8, color: GRAY, flexShrink: 0 }}>{isRisk ? "Hits in:" : "Election:"}</span>
+                <YearSelector value={timing} onChange={(yr) => onTimingChange(item.id, yr)} color={item.color} options={yearOptions} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ paddingTop: 4, borderTop: `1px solid ${BORDER}`, fontSize: 9, color: GRAY }}>
+        {activeCount} of {items.length} active
+      </div>
+    </div>
+  );
+}
+
+const impactThresholds = [
+  { min: 0, max: 5, label: "Manageable", color: GREEN, bg: `${GREEN}22`,
+    ftes: "~9",
+    cumulative: "Achievable through attrition and holding vacancies. Core services maintained. Response times unchanged.",
+    incremental: "Freeze 6–9 vacant positions across departments. Defer non-critical hiring. Reduce overtime budgets.",
+    examples: "Unfilled analyst and maintenance positions held open, overtime for special events reduced" },
+  { min: 5, max: 10, label: "Strained", color: "#8ac926", bg: "#8ac92622",
+    ftes: "~18",
+    cumulative: "All departments operating below full staffing. Some service delays visible to the public. Deferred maintenance begins.",
+    incremental: "Eliminate additional positions beyond vacancies. Reduce park maintenance cycles. Cut discretionary training and travel.",
+    examples: "Park mowing less frequent, permit review times lengthen, police overtime for traffic enforcement eliminated" },
+  { min: 10, max: 20, label: "Reduced Services", color: AMBER, bg: `${AMBER}22`,
+    ftes: "~27",
+    cumulative: "Reduced public-facing hours. Fewer patrol and fire personnel per shift. Capital project delivery slows significantly.",
+    incremental: "Library closes additional day. Recreation programs cut. Engineering positions eliminated, slowing CIP delivery. Some school-site programs end.",
+    examples: "Library closed Mondays, 1–2 fewer officers per patrol shift, RAC hours reduced, CIP projects delayed 6–12 months" },
+  { min: 20, max: 35, label: "Major Cuts", color: "#e76f51", bg: "#e76f5122",
+    ftes: "~46",
+    cumulative: "Active layoffs across departments. Community programs substantially reduced. Longer emergency response times likely.",
+    incremental: "Layoffs in non-safety departments. Community events cut by half. Building inspection delays. Fire minimum staffing at risk.",
+    examples: "After-school programs eliminated, park restroom maintenance reduced, 2+ minute increase in average response times, development review backlogs" },
+  { min: 35, max: 50, label: "Consolidation", color: RED, bg: `${RED}22`,
+    ftes: "~73",
+    cumulative: "Departments consolidated. Service levels fundamentally restructured. Some facilities may close or reduce to part-time.",
+    incremental: "Department mergers required. Fire station brownouts possible. Recreation facilities operate part-time only. Street maintenance deferred years.",
+    examples: "Community Development and Public Works merged, RAC open 3 days/week, one fire company on rotating brownout, street paving halted" },
+  { min: 50, max: 100, label: "Essential Only", color: "#8b0000", bg: "#8b000022",
+    ftes: "91+",
+    cumulative: "City provides emergency and legally mandated services only. Most community programs eliminated. Facilities closed.",
+    incremental: "All discretionary services eliminated. Library closure possible. Parks minimally maintained for safety only. Administrative functions at skeleton staffing.",
+    examples: "Police and fire at minimum legal staffing, library closed or volunteer-only, no recreation programming, no capital projects" },
+];
+
+function getThreshold(pct) {
+  return impactThresholds.find(t => pct >= t.min && pct < t.max) || impactThresholds[impactThresholds.length - 1];
+}
+
+function Stepper({ value, onChange, min, max, step, color, cumulativePct }) {
+  const [hover, setHover] = React.useState(false);
+  const threshold = getThreshold(cumulativePct || 0);
+  const ftesAffected = Math.round((cumulativePct || 0) / 100 * totalFTEs);
+
+  return (
+    <div style={{ position: "relative" }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+        <button onClick={() => onChange(Math.max(min, value - step))} style={{
+          width: 18, height: 18, borderRadius: 3, border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.05)",
+          color: GRAY, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+        }}>−</button>
+        <div style={{ fontSize: 13, fontWeight: 800, color: value > 0 ? color : GRAY, minWidth: 28, textAlign: "center" }}>
+          {value}%
+        </div>
+        <button onClick={() => onChange(Math.min(max, value + step))} style={{
+          width: 18, height: 18, borderRadius: 3, border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.05)",
+          color: GRAY, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+        }}>+</button>
+      </div>
+
+      {hover && cumulativePct > 0 && (
+        <div style={{
+          position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
+          marginBottom: 6, padding: "8px 12px", borderRadius: 8,
+          background: "#1a2744f5", border: `1px solid ${threshold.color}44`,
+          fontSize: 9, color: WHITE, width: 220, zIndex: 10,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+        }}>
+          <div style={{ fontWeight: 700, color: threshold.color, marginBottom: 4, fontSize: 10 }}>
+            {threshold.label}: {cumulativePct}% cumulative ≈ {ftesAffected} FTEs
+          </div>
+          <div style={{ marginBottom: 4, color: GRAY, lineHeight: 1.4 }}>{threshold.cumulative}</div>
+          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 4, marginTop: 4 }}>
+            <div style={{ fontSize: 8, color: threshold.color, fontWeight: 600, marginBottom: 2 }}>What changes at this level:</div>
+            <div style={{ color: "#999", lineHeight: 1.4 }}>{threshold.incremental}</div>
+          </div>
+          <div style={{
+            position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%) rotate(45deg)",
+            width: 8, height: 8, background: "#1a2744", borderRight: `1px solid ${threshold.color}44`, borderBottom: `1px solid ${threshold.color}44`,
+          }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ForecastDashboard() {
+  const [riskTimings, setRiskTimings] = React.useState({ vlf: "Off", vlf2: "Off", trsa: "Off", eraf: "Off", cardroom: "Off" });
+  const [oppTimings, setOppTimings] = React.useState({ measure6: "Off", measure2: "Off", measure1: "Off" });
+  const [yearCuts, setYearCuts] = React.useState({ FY27: 0, FY28: 0, FY29: 0, FY30: 0, FY31: 0, FY32: 0 });
+  const [yearReserves, setYearReserves] = React.useState({ FY27: false, FY28: false, FY29: false, FY30: false, FY31: false });
+
+  const setRiskTiming = React.useCallback((id, year) => { setRiskTimings(prev => ({ ...prev, [id]: year })); }, []);
+  const setOppTiming = React.useCallback((id, year) => { setOppTimings(prev => ({ ...prev, [id]: year })); }, []);
+
+  // Calculate impact for each year based on timing selections
+  function getYearImpact(year) {
+    const yearIdx = YEARS.indexOf(year);
+    let riskImpact = 0;
+    let riskExpReduction = 0;
+    let oppImpact = 0;
+
+    riskItems.forEach(r => {
+      const timing = riskTimings[r.id];
+      if (timing === "Off") return;
+      const startIdx = YEARS.indexOf(timing);
+      if (startIdx >= 0 && yearIdx >= startIdx) {
+        riskImpact += r.amount;
+        riskExpReduction += (r.expReduction || 0);
+      }
+    });
+
+    opportunityItems.forEach(o => {
+      const timing = oppTimings[o.id];
+      if (timing === "Off") return;
+      const startFY = ELECTION_TO_FY[timing];
+      if (!startFY) return;
+      const startIdx = YEARS.indexOf(startFY);
+      if (startIdx >= 0 && yearIdx >= startIdx) {
+        const yearsActive = yearIdx - startIdx;
+        oppImpact += o.amount * Math.pow(1 + (o.growth || 0), yearsActive);
+      }
+    });
+
+    return { riskImpact, riskExpReduction, oppImpact };
+  }
+
+  // Build compounding model
+  const yearResults = [];
+  let cumulativeCutPct = 0;
+  let totalReservesUsed = 0;
+
+  baseData.forEach((d) => {
+    const { riskImpact, riskExpReduction, oppImpact } = getYearImpact(d.year);
+    const adjRev = d.rev - riskImpact + oppImpact;
+
+    const thisYearCutPct = yearCuts[d.year] || 0;
+    cumulativeCutPct += thisYearCutPct;
+    const cumulativeSavings = (cumulativeCutPct / 100) * totalSB;
+    const adjExp = d.exp - cumulativeSavings - riskExpReduction;
+
+    const rawGap = adjRev - (d.exp - riskExpReduction);
+    const gapAfterCuts = adjRev - adjExp;
+
+    const isFY32 = d.year === "FY32";
+    const useReserves = !isFY32 && yearReserves[d.year] && gapAfterCuts < 0;
+    const reserveAmount = useReserves ? Math.abs(gapAfterCuts) : 0;
+    totalReservesUsed += reserveAmount;
+
+    const finalPosition = gapAfterCuts + reserveAmount;
+    const isBalanced = finalPosition >= -0.05;
+
+    yearResults.push({
+      ...d, adjRev, adjExp, rawGap, riskImpact, riskExpReduction, oppImpact,
+      thisYearCutPct, cumulativeCutPct, cumulativeSavings,
+      gapAfterCuts, useReserves, reserveAmount, finalPosition, isBalanced, isFY32,
+    });
+  });
+
+  const reservesRemaining = RESERVE_CAP - totalReservesUsed;
+
+  // Chart data
+  const chartData = yearResults.map(yr => ({
+    year: yr.year,
+    exp: yr.adjExp,
+    baseExp: yr.exp,
+    adjRev: yr.adjRev,
+    balanced: yr.useReserves ? yr.adjExp : yr.adjRev,
+  }));
+
+  const allVals = chartData.flatMap(d => [d.exp, d.adjRev, d.balanced, d.baseExp || d.exp]);
+  const yMin = Math.floor(Math.min(...allVals) / 5) * 5 - 5;
+  const yMax = Math.ceil(Math.max(...allVals) / 5) * 5 + 5;
+
+  const fy32 = yearResults[yearResults.length - 1];
+  const allBalanced = yearResults.every(y => y.isBalanced);
+
+  return (
+    <div style={{ fontFamily: "'IBM Plex Sans', 'Segoe UI', sans-serif", background: DARK, color: WHITE, minHeight: "100vh", display: "flex", flexDirection: "column", padding: "8px 12px" }}>
+      {/* Title */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>
+        <div>
+          <div style={{ fontSize: 8, textTransform: "uppercase", letterSpacing: 2, color: GRAY }}>City of San Bruno</div>
+          <div style={{ fontSize: 15, fontWeight: 800 }}>General Fund Forecast — What If?</div>
+        </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {allBalanced
+            ? <div style={{ padding: "2px 8px", borderRadius: 10, background: `${GREEN}22`, border: `1px solid ${GREEN}55`, fontSize: 9, fontWeight: 700, color: GREEN }}>✓ All years balanced</div>
+            : <div style={{ padding: "2px 8px", borderRadius: 10, background: `${RED}22`, border: `1px solid ${RED}55`, fontSize: 9, fontWeight: 700, color: RED_LIGHT }}>⚠ Unbalanced years</div>
+          }
+          <button onClick={() => {
+            setRiskTimings({ vlf: "Off", vlf2: "Off", trsa: "Off", eraf: "Off", cardroom: "Off" });
+            setOppTimings({ measure6: "Off", measure2: "Off", measure1: "Off" });
+            setYearCuts({ FY27: 0, FY28: 0, FY29: 0, FY30: 0, FY31: 0, FY32: 0 });
+            setYearReserves({ FY27: false, FY28: false, FY29: false, FY30: false, FY31: false });
+          }} style={{
+            padding: "3px 10px", borderRadius: 4, border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.05)", color: GRAY, cursor: "pointer",
+            fontSize: 9, fontWeight: 600, transition: "all 0.2s",
+          }}
+            onMouseEnter={e => { e.target.style.background = "rgba(255,255,255,0.12)"; e.target.style.color = WHITE; }}
+            onMouseLeave={e => { e.target.style.background = "rgba(255,255,255,0.05)"; e.target.style.color = GRAY; }}
+          >↺ Reset</button>
+          <div style={{ fontSize: 8, color: "#444", padding: "2px 6px", border: `1px solid ${BORDER}`, borderRadius: 4 }}>DRAFT</div>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display: "flex", gap: 5, marginBottom: 6 }}>
+        <KPICard label="FY32 Net Risk" value={`–${fmt((fy32?.riskImpact || 0) - (fy32?.riskExpReduction || 0))}`} sub={`–${fmt(fy32?.riskImpact || 0)} rev, +${fmt(fy32?.riskExpReduction || 0)} exp savings`} color={fy32?.riskImpact > 0 ? RED_LIGHT : GRAY} accent={RED} />
+        <KPICard label="FY32 Opportunities" value={`+${fmt(fy32?.oppImpact || 0)}`} sub="Cumulative by FY32" color={fy32?.oppImpact > 0 ? GREEN_LIGHT : GRAY} accent={GREEN} />
+        <KPICard label="Reserves Used" value={totalReservesUsed > 0 ? fmt(totalReservesUsed) : "None"} sub={`${fmt(reservesRemaining)} of ${fmt(RESERVE_CAP)} left`} color={totalReservesUsed > 0 ? PURPLE : GRAY} accent={PURPLE} />
+        <KPICard label="FY32" value={fy32.finalPosition >= 0 ? `+${fmt(fy32.finalPosition)}` : `–${fmt(Math.abs(fy32.finalPosition))}`} sub={fy32.isBalanced ? "Balanced" : "Needs action"} color={fy32.isBalanced ? GREEN : RED_LIGHT} accent={fy32.isBalanced ? GREEN : RED} />
+      </div>
+
+      {/* Risks + Opportunities side by side */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
+        <TimingPanel title="Risks" items={riskItems} timings={riskTimings} onTimingChange={setRiskTiming} accentColor={RED} />
+        <TimingPanel title="Opportunities" items={opportunityItems} timings={oppTimings} onTimingChange={setOppTiming} accentColor={GREEN} yearOptions={ELECTION_YEARS} />
+      </div>
+
+      {/* Chart — full width */}
+      <div style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "12px 16px", marginBottom: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+          <div>
+            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1.5, color: GRAY, fontWeight: 600 }}>Revenue vs Expenditure Projection</div>
+            <div style={{ fontSize: 8, color: GRAY, marginTop: 3 }}>
+              <span style={{ color: RED_LIGHT, fontWeight: 600 }}>■</span> Expenditures
+              <span style={{ marginLeft: 10, color: GREEN, fontWeight: 600 }}>■</span> Revenue
+              {totalReservesUsed > 0 && <><span style={{ marginLeft: 10, color: PURPLE, fontWeight: 600 }}>■</span> +Reserves</>}
+            </div>
+          </div>
+        </div>
+        <div style={{ height: 280 }}>
+          <Recharts.ResponsiveContainer width="100%" height="100%">
+            <Recharts.AreaChart data={chartData} margin={{ left: 10, right: 20, top: 10, bottom: 5 }}>
+              <Recharts.CartesianGrid strokeDasharray="3 3" stroke="#1e2d42" />
+              <Recharts.XAxis dataKey="year" tick={{ fill: GRAY, fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: BORDER }} tickLine={false} />
+              <Recharts.YAxis domain={[yMin, yMax]} tick={{ fill: GRAY, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}M`} width={50} />
+              <Recharts.Tooltip content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                const exp = payload.find(p => p.dataKey === "exp")?.value;
+                const rev = payload.find(p => p.dataKey === "adjRev")?.value;
+                const bal = payload.find(p => p.dataKey === "balanced")?.value;
+                const gap = rev && exp ? rev - exp : 0;
+                const res = bal && rev ? bal - rev : 0;
+                return (
+                  <div style={{ background: "#1a2744f0", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 14px", fontSize: 11, color: WHITE, minWidth: 200 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 5 }}>{label}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}><span style={{ color: RED_LIGHT }}>Expenditures</span><span style={{ fontWeight: 700 }}>${exp?.toFixed(1)}M</span></div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}><span style={{ color: GREEN }}>Revenue</span><span style={{ fontWeight: 700 }}>${rev?.toFixed(1)}M</span></div>
+                    {res > 0.05 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}><span style={{ color: PURPLE }}>Reserves</span><span style={{ fontWeight: 700 }}>${res.toFixed(1)}M</span></div>}
+                    <div style={{ marginTop: 4, paddingTop: 4, borderTop: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 12, color: gap >= -0.05 ? GREEN : RED_LIGHT }}>
+                      <span>{gap >= -0.05 ? "Surplus" : "Gap"}</span><span>{gap >= 0 ? "+" : "–"}${Math.abs(gap).toFixed(1)}M</span>
+                    </div>
+                  </div>
+                );
+              }} />
+              <Recharts.Area type="monotone" dataKey="exp" stroke={RED_LIGHT} fill={RED} fillOpacity={0.05} strokeWidth={3} dot={{ r: 4, fill: RED_LIGHT, stroke: DARK, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              <Recharts.Area type="monotone" dataKey="adjRev" stroke={GREEN} fill={GREEN} fillOpacity={0.05} strokeWidth={2.5} dot={{ r: 4, fill: GREEN, stroke: DARK, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              {totalReservesUsed > 0 && <Recharts.Area type="monotone" dataKey="balanced" stroke={PURPLE} fill={PURPLE} fillOpacity={0.04} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3, fill: PURPLE, stroke: DARK, strokeWidth: 2 }} />}
+            </Recharts.AreaChart>
+          </Recharts.ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Annual Balancing Table */}
+      <div style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 14px" }}>
+        <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1.5, color: AMBER, fontWeight: 700, marginBottom: 8 }}>
+          Annual Balancing — Cuts Reduce Expenditures, Compound Forward
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: "4px 6px", borderBottom: `2px solid ${BORDER}`, color: GRAY, fontSize: 8, width: 140 }}></th>
+                {yearResults.map(yr => (
+                  <th key={yr.year} style={{
+                    textAlign: "center", padding: "4px", borderBottom: `2px solid ${yr.isBalanced ? GREEN : RED}44`,
+                    color: yr.isBalanced ? GREEN : WHITE, fontWeight: 700, fontSize: 11,
+                  }}>
+                    {yr.year}{yr.isBalanced && <span style={{ fontSize: 8, marginLeft: 3 }}>✓</span>}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Revenue risks active */}
+              <tr style={{ background: "rgba(255,255,255,0.015)" }}>
+                <td style={{ padding: "4px 6px", color: RED_LIGHT, fontSize: 9, borderBottom: `1px solid ${BORDER}22` }}>Risk: revenue loss</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, fontWeight: 700, color: yr.riskImpact > 0 ? RED_LIGHT : GRAY, fontSize: 10 }}>
+                    {yr.riskImpact > 0 ? `–${fmt(yr.riskImpact)}` : "—"}
+                  </td>
+                ))}
+              </tr>
+
+              {/* Risk expenditure savings (TRSA) */}
+              {yearResults.some(yr => yr.riskExpReduction > 0) && (
+              <tr>
+                <td style={{ padding: "4px 6px", color: "#8ac926", fontSize: 9, borderBottom: `1px solid ${BORDER}22` }}>Risk: exp savings</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, fontWeight: 700, color: yr.riskExpReduction > 0 ? "#8ac926" : GRAY, fontSize: 10 }}>
+                    {yr.riskExpReduction > 0 ? `+${fmt(yr.riskExpReduction)}` : "—"}
+                  </td>
+                ))}
+              </tr>
+              )}
+
+              {/* Opportunities active */}
+              <tr>
+                <td style={{ padding: "4px 6px", color: GREEN, fontSize: 9, borderBottom: `1px solid ${BORDER}22` }}>Opportunities active</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, fontWeight: 700, color: yr.oppImpact > 0 ? GREEN : GRAY, fontSize: 10 }}>
+                    {yr.oppImpact > 0 ? `+${fmt(yr.oppImpact)}` : "—"}
+                  </td>
+                ))}
+              </tr>
+
+              {/* Raw gap */}
+              <tr style={{ background: "rgba(255,255,255,0.015)" }}>
+                <td style={{ padding: "4px 6px", color: GRAY, fontSize: 9, borderBottom: `1px solid ${BORDER}22` }}>Raw gap</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, fontWeight: 700, color: yr.rawGap >= 0 ? GREEN : RED_LIGHT, fontSize: 11 }}>
+                    {yr.rawGap >= 0 ? "+" : "–"}{fmt(Math.abs(yr.rawGap))}
+                  </td>
+                ))}
+              </tr>
+
+              {/* New cuts */}
+              <tr>
+                <td style={{ padding: "4px 6px", color: AMBER, fontSize: 9, fontWeight: 600, borderBottom: `1px solid ${BORDER}22` }}>New cuts this year</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22` }}>
+                    <Stepper value={yr.thisYearCutPct} onChange={(v) => setYearCuts(prev => ({ ...prev, [yr.year]: v }))} min={0} max={25} step={1} color={AMBER} cumulativePct={yr.cumulativeCutPct} />
+                  </td>
+                ))}
+              </tr>
+
+              {/* Cumulative cut */}
+              <tr style={{ background: "rgba(255,255,255,0.015)" }}>
+                <td style={{ padding: "4px 6px", color: GRAY, fontSize: 9, borderBottom: `1px solid ${BORDER}22` }}>Cumul. exp reduction ↓</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, color: yr.cumulativeCutPct > 0 ? AMBER : GRAY, fontWeight: 700, fontSize: 10 }}>
+                    {yr.cumulativeCutPct > 0 ? <>{yr.cumulativeCutPct}%<div style={{ fontSize: 7, fontWeight: 400, color: GRAY }}>{fmt(yr.cumulativeSavings)}/yr</div></> : "—"}
+                  </td>
+                ))}
+              </tr>
+
+              {/* Gap after cuts */}
+              <tr>
+                <td style={{ padding: "4px 6px", color: GRAY, fontSize: 9, borderBottom: `1px solid ${BORDER}22` }}>Gap after cuts</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, fontWeight: 700, color: yr.gapAfterCuts >= 0 ? GREEN : RED_LIGHT, fontSize: 11 }}>
+                    {yr.gapAfterCuts >= 0 ? "+" : "–"}{fmt(Math.abs(yr.gapAfterCuts))}
+                  </td>
+                ))}
+              </tr>
+
+              {/* Reserves */}
+              <tr style={{ background: "rgba(255,255,255,0.015)" }}>
+                <td style={{ padding: "4px 6px", color: PURPLE, fontSize: 9, fontWeight: 600, borderBottom: `1px solid ${BORDER}22` }}>Use reserves</td>
+                {yearResults.map(yr => {
+                  if (yr.isFY32) return <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, fontSize: 8, color: AMBER }}>🔒</td>;
+                  if (yr.gapAfterCuts >= 0) return <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22`, color: GREEN, fontSize: 9 }}>—</td>;
+                  const wouldExceed = !yr.useReserves && (totalReservesUsed + Math.abs(yr.gapAfterCuts)) > RESERVE_CAP;
+                  return (
+                    <td key={yr.year} style={{ textAlign: "center", padding: "4px", borderBottom: `1px solid ${BORDER}22` }}>
+                      <div onClick={() => !wouldExceed && setYearReserves(prev => ({ ...prev, [yr.year]: !prev[yr.year] }))}
+                        style={{ cursor: wouldExceed ? "default" : "pointer", opacity: wouldExceed ? 0.4 : 1, display: "inline-block" }}>
+                        <div style={{ width: 28, height: 14, borderRadius: 7, background: yr.useReserves ? PURPLE : "#2a2a3a", position: "relative", margin: "0 auto" }}>
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: yr.useReserves ? 16 : 2, transition: "left 0.2s" }} />
+                        </div>
+                        {yr.useReserves && <div style={{ fontSize: 8, color: PURPLE, marginTop: 1 }}>{fmt(yr.reserveAmount)}</div>}
+                        {wouldExceed && <div style={{ fontSize: 7, color: AMBER }}>exceeds cap</div>}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {/* Final position */}
+              <tr style={{ borderTop: `2px solid ${BORDER}` }}>
+                <td style={{ padding: "5px 6px", fontWeight: 700, color: WHITE, fontSize: 10 }}>Final position</td>
+                {yearResults.map(yr => (
+                  <td key={yr.year} style={{ textAlign: "center", padding: "5px 4px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: yr.isBalanced ? GREEN : RED_LIGHT }}>
+                      {yr.isBalanced ? "✓" : `–${fmt(Math.abs(yr.finalPosition))}`}
+                    </div>
+                    {yr.isBalanced && yr.finalPosition > 0.05 && <div style={{ fontSize: 7, color: GREEN }}>+{fmt(yr.finalPosition)}</div>}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Reserve gauge */}
+        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 9, color: GRAY }}>Reserves:</span>
+          <div style={{ flex: 1, height: 5, borderRadius: 3, background: "#1a1a2e", overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 3, width: `${Math.min(100, totalReservesUsed / RESERVE_CAP * 100)}%`, background: totalReservesUsed / RESERVE_CAP > 0.85 ? RED : totalReservesUsed / RESERVE_CAP > 0.5 ? AMBER : PURPLE, transition: "all 0.3s" }} />
+          </div>
+          <span style={{ fontSize: 9, color: reservesRemaining < 3 ? RED_LIGHT : PURPLE, fontWeight: 700 }}>{fmt(totalReservesUsed)} used · {fmt(reservesRemaining)} left</span>
+        </div>
+      </div>
+
+      {/* Service Impact Section */}
+      {fy32.cumulativeCutPct > 0 && (() => {
+        const t = getThreshold(fy32.cumulativeCutPct);
+        const ftesTotal = Math.round(fy32.cumulativeCutPct / 100 * totalFTEs);
+        return (
+          <div style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 14px", marginTop: 6 }}>
+            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1.5, color: t.color, fontWeight: 700, marginBottom: 8 }}>
+              Service Delivery Impact — {fy32.cumulativeCutPct}% Cumulative Reduction ≈ {ftesTotal} FTEs
+            </div>
+
+            {/* Severity bar */}
+            <div style={{ position: "relative", marginBottom: 12 }}>
+              <div style={{ display: "flex", height: 20, borderRadius: 4, overflow: "hidden" }}>
+                {impactThresholds.map((th, i) => {
+                  const width = (th.max - th.min);
+                  return (
+                    <div key={i} style={{
+                      width: `${width}%`, height: "100%",
+                      background: th.bg,
+                      borderRight: i < impactThresholds.length - 1 ? `1px solid ${DARK}` : "none",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <span style={{ fontSize: 7, color: th.color, fontWeight: 600, whiteSpace: "nowrap" }}>{th.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Marker */}
+              <div style={{
+                position: "absolute", top: -3, left: `${Math.min(95, fy32.cumulativeCutPct)}%`,
+                transform: "translateX(-50%)", transition: "left 0.3s",
+              }}>
+                <div style={{ width: 2, height: 26, background: WHITE, borderRadius: 1 }} />
+                <div style={{ fontSize: 8, fontWeight: 800, color: WHITE, textAlign: "center", marginTop: 2, whiteSpace: "nowrap" }}>
+                  {fy32.cumulativeCutPct}%
+                </div>
+              </div>
+            </div>
+
+            {/* Current impact description */}
+            <div style={{
+              padding: "8px 12px", borderRadius: 6, marginBottom: 10,
+              background: t.bg, border: `1px solid ${t.color}33`,
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: t.color, marginBottom: 4 }}>
+                Current level: {t.label} — approximately {t.ftes} positions
+              </div>
+              <div style={{ fontSize: 9, color: WHITE, lineHeight: 1.5, marginBottom: 6 }}>
+                <span style={{ color: GRAY, fontWeight: 600 }}>What the city looks like: </span>{t.cumulative}
+              </div>
+              <div style={{ fontSize: 9, color: WHITE, lineHeight: 1.5, borderTop: `1px solid ${BORDER}`, paddingTop: 5 }}>
+                <span style={{ color: t.color, fontWeight: 600 }}>What changes at this level: </span>{t.incremental}
+              </div>
+            </div>
+
+            {/* Reference card */}
+            <div style={{ fontSize: 8, color: GRAY, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Impact Reference</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {impactThresholds.map((th, i) => {
+                const isCurrent = fy32.cumulativeCutPct >= th.min && fy32.cumulativeCutPct < th.max;
+                return (
+                  <div key={i} style={{
+                    flex: 1, padding: "6px 6px", borderRadius: 5,
+                    background: isCurrent ? th.bg : "rgba(255,255,255,0.015)",
+                    border: `1px solid ${isCurrent ? th.color + "55" : BORDER}`,
+                    transition: "all 0.3s",
+                  }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: isCurrent ? th.color : GRAY, marginBottom: 1 }}>
+                      {th.min}–{th.max}%
+                    </div>
+                    <div style={{ fontSize: 8, fontWeight: 600, color: isCurrent ? WHITE : GRAY, marginBottom: 1 }}>{th.label}</div>
+                    <div style={{ fontSize: 7, color: isCurrent ? GRAY : "#444", marginBottom: 3 }}>{th.ftes} positions</div>
+                    <div style={{ fontSize: 7, color: isCurrent ? "#aaa" : "#333", lineHeight: 1.4 }}>{th.examples}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      <div style={{ marginTop: 4, padding: "2px 0", borderTop: `1px solid ${BORDER}`, fontSize: 7, color: "#444", textAlign: "center" }}>
+        Forecast covers FY27–FY32 • Workforce cuts reduce expenditures and compound forward • Reserves are one-time • FY32 must balance without reserves • DRAFT
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(ForecastDashboard)
+);
+  </script>
+</body>
+</html>
