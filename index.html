@@ -195,7 +195,7 @@ function ForecastDashboard(){
         </button>
         <button onClick={function(){setOppOpen(!oppOpen);if(!oppOpen)setRiskOpen(false)}} style={{flex:1,padding:"10px 16px",borderRadius:8,border:"none",background:GREEN,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all 0.2s"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:14,fontWeight:700,color:"#ffffff",textTransform:"uppercase",letterSpacing:1.5}}>Opportunities</span>
+            <span style={{fontSize:14,fontWeight:700,color:"#ffffff",textTransform:"uppercase",letterSpacing:1.5}}>Revenue Opportunities</span>
             <span style={{fontSize:13,color:"rgba(255,255,255,0.7)"}}>{Object.values(oT).filter(function(v){return v!=="Off"}).length} of {opportunityItems.length} active</span>
           </div>
           <span style={{fontSize:16,color:"#ffffff",transition:"transform 0.2s",display:"inline-block",transform:oppOpen?"rotate(180deg)":"rotate(0deg)"}}>{"\u25BC"}</span>
@@ -243,7 +243,7 @@ function ForecastDashboard(){
             <tr><td style={{padding:"4px 6px",color:AMBER,fontSize:16,fontWeight:600,borderBottom:"1px solid "+BORDER+"22"}}>Service cuts</td>
               {yr.map(function(y){return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22"}}><Stepper value={y.thisYearCutPct} onChange={function(v){sYC(function(p){var n=Object.assign({},p);n[y.year]=v;return n})}} min={0} max={25} step={1} color={AMBER} cumulativePct={y.cumulativeCutPct}/></td>})}
             </tr>
-            <tr style={{background:"rgba(0,0,0,0.025)"}}><td style={{padding:"4px 6px",color:GRAY,fontSize:16,borderBottom:"1px solid "+BORDER+"22"}}>Cumul. exp reduction</td>
+            <tr style={{background:"rgba(0,0,0,0.025)"}}><td style={{padding:"4px 6px",color:GRAY,fontSize:16,borderBottom:"1px solid "+BORDER+"22"}}>Cumul. service reduction</td>
               {yr.map(function(y){return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22",color:y.cumulativeCutPct>0?AMBER:GRAY,fontWeight:700,fontSize:17}}>{y.cumulativeCutPct>0?y.cumulativeCutPct+"%":"\u2014"}</td>})}
             </tr>
             <tr><td style={{padding:"4px 6px",color:GRAY,fontSize:16,borderBottom:"1px solid "+BORDER+"22"}}>Adj. Surplus/(Deficit)</td>
