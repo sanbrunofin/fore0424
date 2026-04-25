@@ -30,16 +30,16 @@ const totalSB=departments.reduce((s,d)=>s+d.sb,0);
 const totalFTEs=departments.reduce((s,d)=>s+d.ftes,0);
 const riskItems=[
   {id:"vlf",label:"VLF Backfill",amount:3.0,expReduction:0,color:RED,detail:"$3M revenue loss"},
-  {id:"vlf2",label:"VLF Backfill II",amount:4.0,expReduction:0,color:RED,detail:"Additional VLF reduction \u2014 $4M revenue loss"},
+  {id:"vlf2",label:"VLF Backfill II",amount:4.0,expReduction:0,color:RED,detail:"Additional $4M VLF revenue loss"},
   {id:"trsa",label:"TRSA",amount:8.0,expReduction:4.0,color:RED,detail:"\u2013$8M revenue, \u2013$4M expenditure (net \u2013$4M)"},
-  {id:"trsa_repay",label:"TRSA Repayment",amount:0,expBase:43.0,expPerYear:8.0,oneTime:true,color:RED,detail:"One-time repayment: $43M base + $8M per year collected"},
-  {id:"eraf",label:"Excess ERAF",amount:2.0,expReduction:0,color:RED,detail:"State Controller audit \u2014 $2M revenue loss"},
-  {id:"cardroom",label:"Cardroom",amount:3.4,expReduction:0,color:RED,detail:"SB 549 litigation \u2014 $3.4M revenue loss"}
+  {id:"trsa_repay",label:"TRSA Repayment",amount:0,expBase:43.0,expPerYear:8.0,oneTime:true,color:RED,detail:"One-time repayment: $43M FY27 + $8M per year collected"},
+  {id:"eraf",label:"Excess ERAF",amount:2.0,expReduction:0,color:RED,detail:"$2M revenue loss"},
+  {id:"cardroom",label:"Cardroom",amount:3.4,expReduction:0,color:RED,detail:"$3.4M revenue loss"}
 ];
 const opportunityItems=[
-  {id:"measure6",label:"$7M Revenue Measure",amount:7.0,growth:0.04,color:GREEN,detail:"Major tax measure, grows 4.0%/yr."},
+  {id:"measure6",label:"$7.0M Revenue Measure",amount:7.0,growth:0.04,color:GREEN,detail:"Major tax measure, grows 4.0%/yr."},
   {id:"measure35",label:"$3.5M Revenue Measure",amount:3.5,growth:0.02,color:GREEN,detail:"Moderate tax measure, grows 2.0%/yr."},
-  {id:"measure1",label:"$1M Revenue Measure",amount:1.0,growth:0.02,color:GREEN_LIGHT,detail:"Smaller tax measure, grows 2.0%/yr."}
+  {id:"measure1",label:"$1.0M Revenue Measure",amount:1.0,growth:0.02,color:GREEN_LIGHT,detail:"Smaller tax measure, grows 2.0%/yr."}
 ];
 const ELECTION_YEARS=["2026","2028","2030"];
 const ELECTION_TO_FY={"2026":"FY28","2028":"FY30","2030":"FY32"};
