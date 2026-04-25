@@ -11,7 +11,7 @@
     #root { min-height: 100vh; }
     button:focus { outline: none; }
     #loading { display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column; }
-    #loading h2 { color:#4b5563;font-size:16px; }
+    #loading h2 { color:#4b5563;font-size:25px; }
   </style>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -31,7 +31,7 @@ const totalFTEs=departments.reduce((s,d)=>s+d.ftes,0);
 const riskItems=[
   {id:"vlf",label:"VLF Backfill",amount:3.0,expReduction:0,color:RED,detail:"$3M revenue loss"},
   {id:"vlf2",label:"VLF Backfill II",amount:4.0,expReduction:0,color:RED,detail:"Additional $4M VLF revenue loss"},
-  {id:"trsa",label:"TRSA",amount:8.0,expReduction:4.0,color:RED,detail:"\u2013$8M revenue, \u2013$4M expenditure (net \u2013$4M)"},
+  {id:"trsa",label:"TRSA",amount:8.0,expReduction:4.0,color:RED,detail:"$8M revenue loss, $4M lower reserve transfer, (net \u2013$4M)"},
   {id:"trsa_repay",label:"TRSA Repayment",amount:0,expBase:43.0,expPerYear:8.0,oneTime:true,color:RED,detail:"One-time repayment: $43M FY27 + $8M per year collected"},
   {id:"eraf",label:"Excess ERAF",amount:2.0,expReduction:0,color:RED,detail:"$2M revenue loss"},
   {id:"cardroom",label:"Cardroom",amount:3.4,expReduction:0,color:RED,detail:"$3.4M revenue loss"}
