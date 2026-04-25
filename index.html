@@ -29,7 +29,7 @@ const departments=[{id:"police",label:"Police",sb:17.34,ftes:72},{id:"fire",labe
 const totalSB=departments.reduce((s,d)=>s+d.sb,0);
 const totalFTEs=departments.reduce((s,d)=>s+d.ftes,0);
 const riskItems=[
-  {id:"vlf",label:"VLF Backfill",amount:3.0,expReduction:0,color:RED,detail:"State formula \u2014 $3M revenue loss"},
+  {id:"vlf",label:"VLF Backfill",amount:3.0,expReduction:0,color:RED,detail:"$3M revenue loss"},
   {id:"vlf2",label:"VLF Backfill II",amount:4.0,expReduction:0,color:RED,detail:"Additional VLF reduction \u2014 $4M revenue loss"},
   {id:"trsa",label:"TRSA",amount:8.0,expReduction:4.0,color:RED,detail:"\u2013$8M revenue, \u2013$4M expenditure (net \u2013$4M)"},
   {id:"trsa_repay",label:"TRSA Repayment",amount:0,expBase:43.0,expPerYear:8.0,oneTime:true,color:RED,detail:"One-time repayment: $43M base + $8M per year collected"},
