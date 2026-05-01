@@ -265,28 +265,28 @@ function ForecastDashboard(){
 
     {showGuide&&<div style={{marginBottom:12,padding:"20px 24px",background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0"}}>
       <div style={{fontSize:14,color:"#475569",lineHeight:1.6,marginBottom:16}}>
-        This dashboard models the General Fund over six fiscal years (FY27{"\u2013"}FY32). Toggle revenue risks, add revenue measures, adjust cuts, and use reserves to find a path to structural balance.
+        This dashboard models the General Fund over six fiscal years (FY27{"\u2013"}FY32). Toggle revenue risks, add revenue measures, cut services, and use reserves to plot a path to structurally balanced budget.
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:16}}>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+RED}}>
           <div style={{fontSize:22,fontWeight:800,color:RED,marginBottom:2}}>1</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Revenue Risks</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Click the red bar. Select the year each risk hits. The chart and table update instantly.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Decisions made by the State of California threaten to reduce City revenues. Click the red bar to see the multiple revenue risks that exist and pick the year each risk hits. The chart and table update instantly.</div>
         </div>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+GREEN}}>
           <div style={{fontSize:22,fontWeight:800,color:GREEN,marginBottom:2}}>2</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Revenue Opportunities</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Click the green bar. Pick an election year for a potential revenue measure (2026, 2028, 2030).</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>One option to balance the budget is voter approval of new revenue measures. Click the green bar. Pick an election year for a potential revenue measure (2026, 2028, 2030). The chart and table update instantly.</div>
         </div>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+AMBER}}>
           <div style={{fontSize:22,fontWeight:800,color:AMBER,marginBottom:2}}>3</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Service Cuts</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Use +/{"\u2013"} buttons. 1% {"\u2248"} 1.8 FTEs {"\u2248"} $410K/yr. Cuts compound forward {"\u2014"} earlier = more savings.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Another option to balance the budget is by reducing services. Service cuts are the only way to structurally balance the budget absent new revenue sources. Use +/{"\u2013"} buttons to set the percent service reductions. Note - 1% {"\u2248"} 1.8 employees totaling {"\u2248"} $410K/yr. Service cuts compound forward {"\u2014"} earlier = more savings. The chart and table update instantly.</div>
         </div>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+PURPLE}}>
           <div style={{fontSize:22,fontWeight:800,color:PURPLE,marginBottom:2}}>4</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Use Reserves</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>A full or partial option to balance the budget is the use of reserves. Reserves only impact the deficit in the year selected. Note - FY32 must balance without reserves.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Reserves can be used to fully or partially balance a deficit budget, but only temporarily. If toggled on, reserves will only be used in the year toggled and will not help future year deficits. The chart and table update instantly. Because reserves are finite, this exercise does not allow use of reserves in FY32.</div>
         </div>
       </div>
       <div style={{display:"flex",gap:24,fontSize:12,color:"#64748b"}}>
