@@ -242,8 +242,8 @@ function ForecastDashboard(){
         </div>
         <div style={{fontSize:14,lineHeight:1.7,color:"#475569",marginBottom:24}}>
           <p style={{marginBottom:12}}>This dashboard is provided <strong style={{color:"#1e293b"}}>for illustrative and educational purposes only</strong>. It is a scenario estimator designed to help visualize potential fiscal outcomes under different assumptions.</p>
-          <p style={{marginBottom:12}}>This tool is <strong style={{color:RED}}>not a financial model</strong> and should not be used as the basis for making financial, budgetary, or policy decisions. The projections, figures, and scenarios presented are simplified estimates and do not account for all variables that affect municipal finance.</p>
-          <p style={{marginBottom:0}}>By proceeding, you acknowledge and accept that this dashboard is solely an exploratory tool and that any decisions should rely on comprehensive analysis by qualified financial professionals.</p>
+          <p style={{marginBottom:12}}>This tool is <strong style={{color:RED}}>not a financial model</strong> and should not be used as the basis for making financial, budgetary, or policy decisions. The projections, figures, and scenarios presented are simplified estimates and do not account for all variables that affect San Bruno finances.</p>
+          <p style={{marginBottom:0}}>By proceeding, you acknowledge and accept that this dashboard is solely an exploratory tool and that any decisions should rely on comprehensive analysis.</p>
         </div>
         <div style={{display:"flex",gap:12,justifyContent:"flex-end"}}>
           <button onClick={function(){setDisclaimerAccepted(true)}} style={{padding:"12px 32px",borderRadius:8,border:"none",background:"#1e293b",color:"#ffffff",cursor:"pointer",fontSize:15,fontWeight:700,letterSpacing:0.3,transition:"all 0.15s"}}>
@@ -265,7 +265,7 @@ function ForecastDashboard(){
 
     {showGuide&&<div style={{marginBottom:12,padding:"20px 24px",background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0"}}>
       <div style={{fontSize:14,color:"#475569",lineHeight:1.6,marginBottom:16}}>
-        This dashboard models the General Fund over six fiscal years (FY27{"\u2013"}FY32). Toggle risks, add revenue measures, adjust cuts, and use reserves to find a path to structural balance.
+        This dashboard models the General Fund over six fiscal years (FY27{"\u2013"}FY32). Toggle revenue risks, add revenue measures, adjust cuts, and use reserves to find a path to structural balance.
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:16}}>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+RED}}>
@@ -276,7 +276,7 @@ function ForecastDashboard(){
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+GREEN}}>
           <div style={{fontSize:22,fontWeight:800,color:GREEN,marginBottom:2}}>2</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Revenue Opportunities</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Click the green bar. Pick an election year (2026, 2028, 2030). Revenue starts the next fiscal year.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Click the green bar. Pick an election year for a potential revenue measure (2026, 2028, 2030).</div>
         </div>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+AMBER}}>
           <div style={{fontSize:22,fontWeight:800,color:AMBER,marginBottom:2}}>3</div>
@@ -286,13 +286,12 @@ function ForecastDashboard(){
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+PURPLE}}>
           <div style={{fontSize:22,fontWeight:800,color:PURPLE,marginBottom:2}}>4</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Use Reserves</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Toggle on for deficit years. Surpluses auto-add. FY32 locked {"\u2014"} must balance without reserves. Target: 30%.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Toggle on for deficit years. FY32 must balance without reserves.</div>
         </div>
       </div>
       <div style={{display:"flex",gap:24,fontSize:12,color:"#64748b"}}>
         <span><strong style={{color:RED}}>Structural Gap:</strong> Revenue +2.1%/yr vs Expenditures +4.0%/yr</span>
-        <span><strong style={{color:GREEN}}>Reserve Target:</strong> 30% of expenditures</span>
-        <span><strong style={{color:AMBER}}>Key Insight:</strong> Early action is 2.5x more effective than late action</span>
+        <span><strong style={{color:AMBER}}>Key Insight:</strong> Early service cust are 2.5x more effective than late action</span>
       </div>
     </div>}
 
