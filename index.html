@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>San Bruno General Fund Forecast</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #ffffff; color: #111827; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; -webkit-text-size-adjust: 100%; }
+    #root { min-height: 100vh; }
+    button:focus { outline: none; }
+    button { -webkit-tap-highlight-color: transparent; }
+    #loading { display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column; }
+    #loading h2 { color:#4b5563;font-size:24px; }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"><div id="loading"><h2>Loading...</h2></div></div>
+  <script type="text/babel">
+const { useState, useCallback, useEffect, Fragment } = React;
+const DARK="#ffffff",CARD_BG="#f5f6f8",BORDER="#d0d5dd",RED="#e63946",RED_LIGHT="#dc2626",AMBER="#d97706",GREEN="#0f766e",GREEN_LIGHT="#0d9488",PURPLE="#7c3aed",GRAY="#4b5563",WHITE="#111827";
+const RESERVE_BASE=57.5,RESERVE_ANNUAL_GROWTH=4.0;
+const YEARS=["FY27","FY28","FY29","FY30","FY31","FY32"];
+const baseData=[{year:"FY27",rev:77.7,exp:76.4},{year:"FY28",rev:80.3,exp:81.3},{year:"FY29",rev:82.2,exp:85.2},{year:"FY30",rev:83.7,exp:88.0},{year:"FY31",rev:85.4,exp:90.9},{year:"FY32",rev:87.1,exp:93.8}];
+const departments=[{id:"police",label:"Police",sb:17.34,ftes:72},{id:"fire",label:"Fire",sb:12.17,ftes:40},{id:"commsvc",label:"Comm Svcs",sb:4.14,ftes:24.95},{id:"pw",label:"Public Wks",sb:2.72,ftes:23.16},{id:"admin",label:"Admin Svcs",sb:2.43,ftes:15.15},{id:"cm",label:"City Mgr",sb:2.03,ftes:7.35},{id:"cd",label:"Comm Dev",sb:0.24,ftes:1.15}];
+const totalSB=departments.reduce((s,d)=>s+d.sb,0);
+const totalFTEs=departments.reduce((s,d)=>s+d.ftes,0);
+const riskItems=[
+  {id:"vlf",label:"VLF Backfill",amount:3.0,expReduction:0,color:RED,detail:"$3M revenue loss (in baseline)",info:"Vehicle License Fee (VLF) Backfill is state funding that replaced VLF revenue after the state reduced the VLF rate, at the expense of cities. The $3M loss is incorporated in the Draft FY2026-27 budget. The state promised to make cities whole for the loss using a formula that adversely affects San Mateo County and all cities in the county. As a consequence, the City has lost $3M in annual General Fund revenue beginning in FY27. Toggle off to model a scenario where the State restores this funding."},
+  {id:"vlf2",label:"VLF Backfill II",amount:4.0,expReduction:0,color:RED,detail:"Additional $4M VLF revenue loss",info:"Beyond the $3M VLF backfill loss already incorporated in the FY27 baseline, the City is at risk of losing the remaining $4 million in VLF backfill revenue if the state fails to fix the broken allocation formula. This additional loss could occur as early as FY28."},
+  {id:"trsa",label:"TRSA",amount:8.0,expReduction:4.0,color:RED,detail:"$8M rev loss, $4M lower reserve xfer",info:"The City is currently in litigation challenging the state's decision to takeaway $8 million annually of sales tax revenue resulting from a tax revenue sharing agreement (TRSA). If the City loses the lawsuit, the City will lose $8 million per year in revenue, half of which is used to pay for services and the other half held in reserve."},
+  {id:"trsa_repay",label:"TRSA Repayment",amount:0,expBase:43.0,expPerYear:8.0,oneTime:true,color:RED,detail:"One-time repayment: $43\u201383M",info:"If the City loses the lawsuit against the state, the City will be required to return all TRSA revenue collected. The total amount collected since the TRSA inception is $43M and the amount increases by $8M for each additional year the TRSA revenue is allocated to San Bruno. Total exposure ranges from $43M to $83M depending on timing."},
+  {id:"eraf",label:"Excess ERAF",amount:2.0,expReduction:0,color:RED,detail:"$2M revenue loss",info:"Excess ERAF (Educational Revenue Augmentation Fund) revenue totaling $2 million per year is returned to the City due to a broken state formula affecting state funding to schools. The County of San Mateo is appealing the State Controller\u2019s findings; however, if the appeal is denied, the City is at risk of losing up to $2 million annually. A negative change in the County\u2019s calculation could trigger this loss as early as FY28."},
+  {id:"cardroom",label:"Cardroom",amount:3.4,expReduction:0,color:RED,detail:"$3.4M revenue loss",info:"The City receives $3.4 million in revenue from the local cardroom through taxes and reimbursements. The state created opportunities for litigation against cardrooms across the state through 2024 Senate Bill 549, which allows Native American tribes to sue gambling halls. Regulatory changes or closures could eliminate $3.4M in annual revenue to the General Fund as early as FY27."}
+];
+const opportunityItems=[
+  {id:"measure6",label:"$7.0M Revenue Measure",amount:7.0,growth:0.04,color:GREEN,detail:"Parcel tax, grows 4.0%/yr.",info:"A parcel tax projected to generate $7.0M in its first full year. Revenue grows at 4.0% annually, keeping pace with expenditure growth (grows to ~$8.2M by FY32 if passed in 2026). Requires voter approval at a general election (2026, 2028, or 2030). Ad Hoc Subcommittee (Hamilton/Salazar) exploring Nov 2026 ballot."},
+  {id:"measure35",label:"$3.5M Revenue Measure",amount:3.5,growth:0.02,color:GREEN,detail:"Additional sales tax, grows 2.0%/yr.",info:"An additional sales tax measure similar to Measure G, projected to generate $3.5M in its first full year. Revenue grows at 2.0% annually. Can be combined with other measures but requires voter approval at a general election."},
+  {id:"measure1",label:"$1.0M Revenue Measure",amount:1.0,growth:0.02,color:GREEN_LIGHT,detail:"Transfer/hotel/utility tax, grows 2.0%/yr.",info:"A smaller tax measure (transfer tax, hotel/motel tax increase, utility users\u2019 tax, etc.) projected to generate $1.0M in its first full year. Revenue grows at 2.0% annually. Lower political risk than larger measures but provides less fiscal impact. Requires voter approval."}
+];
+const ELECTION_YEARS=["2026","2028","2030"];
+const ELECTION_TO_FY={"2026":"FY28","2028":"FY30","2030":"FY32"};
+function fmt(n){return "$"+Math.abs(n).toFixed(1)+"M";}
+function fmtSigned(n){return n<-0.05?"("+fmt(n)+")":"$"+n.toFixed(1)+"M";}
+function useIsMobile(bp){bp=bp||768;var[m,s]=useState(window.innerWidth<bp);useEffect(function(){function h(){s(window.innerWidth<bp);}window.addEventListener("resize",h);return function(){window.removeEventListener("resize",h)};},[bp]);return m;}
+
+function YearSelector({value,onChange,color,options:co,M}){
+  var opts=["Off"].concat(co||YEARS);
+  return <div style={{display:"flex",gap:M?4:2,flexWrap:"wrap"}}>
+    {opts.map(function(o){var a=value===o,off=o==="Off";
+      return <button key={o} onClick={function(){onChange(o)}} style={{padding:M?"6px 10px":"2px 5px",borderRadius:M?6:3,border:"none",fontSize:M?16:22,fontWeight:700,cursor:"pointer",minHeight:M?44:undefined,minWidth:M?44:undefined,background:a?(off?"#2a2a3a":color+"33"):"rgba(255,255,255,0.04)",color:a?(off?GRAY:color):"#444",outline:a?"1px solid "+(off?"#444":color):"none"}}>{o}</button>;
+    })}
+  </div>;
+}
+function TimingPanel({title,items,timings,onTimingChange,accentColor,yearOptions,M}){
+  var isRisk=accentColor===RED;
+  var ac=Object.values(timings).filter(function(v){return v!=="Off"}).length;
+  var[openInfo,setOpenInfo]=useState(null);
+  return <div style={{background:CARD_BG,border:"1px solid "+BORDER,borderRadius:8,padding:M?"12px":"10px 12px",display:"flex",flexDirection:"column"}}>
+    {title&&<div style={{fontSize:24,textTransform:"uppercase",letterSpacing:1.5,color:accentColor,marginBottom:6,fontWeight:700}}>{title}</div>}
+    <div style={{flex:1}}>{items.map(function(item){
+      var timing=timings[item.id]||"Off",isA=timing!=="Off";
+      var da=item.amount;
+      var infoOpen=openInfo===item.id;
+      if(item.expBase!==undefined){var yi=isA?YEARS.indexOf(timing):-1;da=isA?item.expBase+(item.expPerYear||0)*yi:0;}
+      return <div key={item.id} style={{padding:M?"10px":"6px 8px",marginBottom:M?8:5,borderRadius:5,background:isA?item.color+"10":"rgba(255,255,255,0.015)",border:"1px solid "+(isA?item.color+"35":BORDER)}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:M?"flex-start":"center",marginBottom:M?8:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:M?"wrap":"nowrap",flex:1,minWidth:0}}>
+            <button onClick={function(e){e.stopPropagation();setOpenInfo(infoOpen?null:item.id)}} style={{width:M?40:22,height:M?40:22,borderRadius:"50%",border:"none",background:infoOpen?item.color:item.color+"25",color:infoOpen?"#fff":item.color,cursor:"pointer",fontSize:20,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>{infoOpen?"\u2715":"\u24D8"}</button>
+            <span style={{fontSize:M?20:26,fontWeight:600,color:isA?"#111":GRAY}}>{item.label}</span>
+            {!M&&<span style={{fontSize:22,color:isA?item.color+"99":"#444"}}>{item.detail}</span>}
+          </div>
+          <div style={{fontSize:21,fontWeight:800,color:isA?item.color:"#bbb",flexShrink:0}}>{isRisk?"("+fmt(da)+")":fmt(da)}</div>
+        </div>
+        {M&&<div style={{fontSize:16,color:isA?item.color+"99":"#444",marginBottom:6}}>{item.detail}</div>}
+        {infoOpen&&<div style={{margin:M?"4px 0 8px 0":"4px 0 6px 26px",padding:M?"12px":"8px 12px",borderRadius:6,background:"#ffffff",border:"1px solid "+item.color+"30",fontSize:M?16:20,lineHeight:1.55,color:"#334155"}}>
+          <div style={{width:3,height:3,borderRadius:"50%",background:item.color,display:"inline-block",marginRight:6,verticalAlign:"middle"}}/>{item.info}
+        </div>}
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:M?18:22,color:GRAY,flexShrink:0}}>{isRisk?"Hits in:":"Election:"}</span>
+          <YearSelector value={timing} onChange={function(yr){onTimingChange(item.id,yr)}} color={item.color} options={yearOptions} M={M}/>
+        </div>
+      </div>;
+    })}</div>
+    <div style={{paddingTop:4,borderTop:"1px solid "+BORDER,fontSize:M?18:24,color:GRAY}}>{ac} of {items.length} active</div>
+  </div>;
+}
+function Stepper({value,onChange,min,max,step,color,M}){
+  var sz=M?36:18;
+  return <div style={{display:"flex",alignItems:"center",gap:M?6:2,justifyContent:"center"}}>
+    <button onClick={function(){onChange(Math.max(min,value-step))}} style={{width:sz,height:sz,borderRadius:M?8:3,border:"1px solid "+BORDER,background:"rgba(0,0,0,0.04)",color:GRAY,cursor:"pointer",fontSize:M?20:27,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>-</button>
+    <div style={{fontSize:M?16:22,fontWeight:800,color:value>0?color:GRAY,minWidth:M?32:28,textAlign:"center"}}>{value}%</div>
+    <button onClick={function(){onChange(Math.min(max,value+step))}} style={{width:sz,height:sz,borderRadius:M?8:3,border:"1px solid "+BORDER,background:"rgba(0,0,0,0.04)",color:GRAY,cursor:"pointer",fontSize:M?20:27,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>+</button>
+  </div>;
+}
+function SvgChart({chartData,yMin,yMax,totalReservesUsed,M}){
+  var[hi,setHi]=useState(null);
+  var W=M?700:1600,H=M?280:500,PL=M?48:55,PR=M?8:15,PT=M?10:15,PB=M?28:35,pW=W-PL-PR,pH=H-PT-PB,n=chartData.length;
+  function xP(i){return PL+(i/(n-1))*pW;}
+  function yP(v){return PT+pH-((v-yMin)/(yMax-yMin))*pH;}
+  function mp(k){return chartData.map(function(d,i){return(i===0?"M":"L")+xP(i).toFixed(1)+","+yP(d[k]).toFixed(1)}).join(" ");}
+  var gl=[];for(var v=yMin;v<=yMax;v+=5)gl.push(v);
+  var hd=hi!==null?chartData[hi]:null,hG=hd?hd.adjRev-hd.exp:0,hR=hd?(hd.balanced||hd.adjRev)-hd.adjRev:0;
+  var segments=[];
+  for(var i=0;i<n-1;i++){var x1=xP(i),x2=xP(i+1),r1=chartData[i].adjRev,r2=chartData[i+1].adjRev,e1=chartData[i].exp,e2=chartData[i+1].exp,d1=r1-e1,d2=r2-e2;
+    if((d1>=0&&d2>=0)||(d1<=0&&d2<=0)){segments.push({path:"M"+x1.toFixed(1)+","+yP(r1).toFixed(1)+" L"+x2.toFixed(1)+","+yP(r2).toFixed(1)+" L"+x2.toFixed(1)+","+yP(e2).toFixed(1)+" L"+x1.toFixed(1)+","+yP(e1).toFixed(1)+" Z",color:d1>=0?"surplus":"deficit"});}
+    else{var t=d1/(d1-d2),cx=x1+t*(x2-x1),cv=r1+t*(r2-r1);segments.push({path:"M"+x1.toFixed(1)+","+yP(r1).toFixed(1)+" L"+cx.toFixed(1)+","+yP(cv).toFixed(1)+" L"+x1.toFixed(1)+","+yP(e1).toFixed(1)+" Z",color:d1>=0?"surplus":"deficit"});segments.push({path:"M"+cx.toFixed(1)+","+yP(cv).toFixed(1)+" L"+x2.toFixed(1)+","+yP(r2).toFixed(1)+" L"+x2.toFixed(1)+","+yP(e2).toFixed(1)+" Z",color:d2>=0?"surplus":"deficit"});}}
+  var dotR=M?7:6,lW=M?4:4;
+  return <div style={{position:"relative",height:H}}>
+    <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",height:"100%"}} onMouseLeave={function(){if(!M)setHi(null)}}>
+      <defs><pattern id="hatch-green" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke={GREEN} strokeWidth="2" opacity="0.35"/></pattern><pattern id="hatch-red" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="8" stroke={RED} strokeWidth="2" opacity="0.35"/></pattern></defs>
+      {gl.map(function(v){return <g key={v}><line x1={PL} x2={W-PR} y1={yP(v)} y2={yP(v)} stroke="#e0e4ea" strokeDasharray="3 3"/><text x={PL-6} y={yP(v)+3} fill={GRAY} fontSize={M?12:15} textAnchor="end">{"$"+v+"M"}</text></g>})}
+      {chartData.map(function(d,i){return <text key={d.year} x={xP(i)} y={H-5} fill={GRAY} fontSize={M?14:18} fontWeight={600} textAnchor="middle">{d.year}</text>})}
+      {segments.map(function(s,i){return <path key={"seg"+i} d={s.path} fill={s.color==="surplus"?"url(#hatch-green)":"url(#hatch-red)"}/>})}
+      <path d={mp("exp")} fill="none" stroke={RED_LIGHT} strokeWidth={lW}/><path d={mp("adjRev")} fill="none" stroke={GREEN} strokeWidth={lW-0.5}/>
+      {totalReservesUsed>0&&<Fragment>{chartData.map(function(d,i){if(i>=n-1)return null;var d2=chartData[i+1],usesRes=Math.abs(d.balanced-d.adjRev)>0.05,nextUsesRes=Math.abs(d2.balanced-d2.adjRev)>0.05;if(!usesRes&&!nextUsesRes)return null;return <path key={"bp"+i} d={"M"+xP(i).toFixed(1)+","+yP(d.balanced).toFixed(1)+" L"+xP(i+1).toFixed(1)+","+yP(d2.balanced).toFixed(1)} fill="none" stroke={PURPLE} strokeWidth={3} strokeDasharray="6 3"/>;})}{chartData.map(function(d,i){if(Math.abs(d.balanced-d.adjRev)<=0.05)return null;return <circle key={"b"+i} cx={xP(i)} cy={yP(d.balanced)} r={5} fill={PURPLE} stroke={DARK} strokeWidth={3}/>;})}</Fragment>}
+      {chartData.map(function(d,i){return <circle key={"e"+i} cx={xP(i)} cy={yP(d.exp)} r={dotR} fill={RED_LIGHT} stroke={DARK} strokeWidth={3}/>})}
+      {chartData.map(function(d,i){return <circle key={"r"+i} cx={xP(i)} cy={yP(d.adjRev)} r={dotR} fill={GREEN} stroke={DARK} strokeWidth={3}/>})}
+      {chartData.map(function(d,i){return <rect key={"h"+i} x={xP(i)-pW/(n*2)} y={PT} width={pW/n} height={pH} fill="transparent" onMouseEnter={function(){if(!M)setHi(i)}} onClick={function(){if(M)setHi(hi===i?null:i)}}/>})}
+      {hi!==null&&<line x1={xP(hi)} x2={xP(hi)} y1={PT} y2={PT+pH} stroke="#00000015" strokeWidth={1}/>}
+    </svg>
+    {hd&&hi!==null&&<div style={{position:"absolute",top:M?5:10,...(M?{left:8,right:8}:{left:Math.min(xP(hi)/W*100,70)+"%"}),background:"#ffffffee",border:"1px solid #d0d5dd",borderRadius:8,padding:M?"12px 14px":"10px 14px",fontSize:M?18:27,color:"#1a1a2e",minWidth:M?undefined:200,zIndex:10,pointerEvents:M?"auto":"none"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontWeight:800,fontSize:M?18:24,marginBottom:5}}>{hd.year}</div>{M&&<button onClick={function(){setHi(null)}} style={{border:"none",background:"none",fontSize:20,color:GRAY,cursor:"pointer",padding:4}}>{"\u2715"}</button>}</div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:2,gap:16}}><span style={{color:RED_LIGHT}}>Expenditures</span><span style={{fontWeight:700}}>{"$"+hd.exp.toFixed(1)+"M"}</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:2,gap:16}}><span style={{color:GREEN}}>Revenue</span><span style={{fontWeight:700}}>{"$"+hd.adjRev.toFixed(1)+"M"}</span></div>
+      {hR>0.05&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:2,gap:16}}><span style={{color:PURPLE}}>Reserves</span><span style={{fontWeight:700}}>{"$"+hR.toFixed(1)+"M"}</span></div>}
+      <div style={{marginTop:4,paddingTop:4,borderTop:"1px solid #1e2d42",display:"flex",justifyContent:"space-between",fontWeight:800,fontSize:21,color:hG>=-0.05?GREEN:RED_LIGHT}}><span>{hG>=-0.05?"Surplus":"Gap"}</span><span>{hG>=0?"$"+hG.toFixed(1)+"M":"($"+Math.abs(hG).toFixed(1)+"M)"}</span></div>
+    </div>}
+  </div>;
+}
+
+function ForecastDashboard(){
+  var M=useIsMobile();
+  var[rT,sRT]=useState({vlf:"FY27",vlf2:"Off",trsa:"Off",trsa_repay:"Off",eraf:"Off",cardroom:"Off"});
+  var[oT,sOT]=useState({measure6:"Off",measure35:"Off",measure1:"Off"});
+  var[yC,sYC]=useState({FY27:0,FY28:0,FY29:0,FY30:0,FY31:0,FY32:0});
+  var[yR,sYR]=useState({FY27:false,FY28:false,FY29:false,FY30:false,FY31:false});
+  var[riskOpen,setRiskOpen]=useState(false);
+  var[oppOpen,setOppOpen]=useState(false);
+  var[showGuide,setShowGuide]=useState(true);
+  var[disclaimerAccepted,setDisclaimerAccepted]=useState(false);
+  useEffect(function(){if(M)setShowGuide(false);},[]);
+  var setRT=useCallback(function(id,yr){sRT(function(p){var n=Object.assign({},p);n[id]=yr;return n});setRiskOpen(false)},[]);
+  var setOT=useCallback(function(id,yr){sOT(function(p){var n=Object.assign({},p);n[id]=yr;return n});setOppOpen(false)},[]);
+  function gYI(year){var yi=YEARS.indexOf(year),ri=0,re=0,rx=0,oi=0;riskItems.forEach(function(r){var t=rT[r.id];if(t==="Off")return;var si=YEARS.indexOf(t);if(r.oneTime){if(yi===si){if(r.expBase!==undefined)rx+=r.expBase+(r.expPerYear||0)*si;else rx+=(r.expIncrease||0);ri+=r.amount;}}else{if(si>=0&&yi>=si){ri+=r.amount;re+=(r.expReduction||0);}}});opportunityItems.forEach(function(o){var t=oT[o.id];if(t==="Off")return;var sf=ELECTION_TO_FY[t];if(!sf)return;var si=YEARS.indexOf(sf);if(si>=0&&yi>=si)oi+=o.amount*Math.pow(1+(o.growth||0),yi-si);});return{riskImpact:ri,riskExpReduction:re,riskExpIncrease:rx,oppImpact:oi};}
+  var yr=[],ccp=0,tru=0;var tt=rT["trsa"],tsi=tt!=="Off"?YEARS.indexOf(tt):-1;var reserveBal=RESERVE_BASE;
+  baseData.forEach(function(d,idx){if(tsi<0||idx<tsi)reserveBal+=RESERVE_ANNUAL_GROWTH;var im=gYI(d.year),ar=d.rev-im.riskImpact+im.oppImpact;var tcp=yC[d.year]||0;ccp+=tcp;var cs=(ccp/100)*totalSB;var ae=d.exp-cs-im.riskExpReduction+im.riskExpIncrease;var rg=ar-(d.exp-im.riskExpReduction+im.riskExpIncrease),gc=ar-ae;var f32=d.year==="FY32",ur=!f32&&yR[d.year]&&gc<0;var ra=ur?Math.min(Math.abs(gc),reserveBal):0;tru+=ra;var surplusToReserves=gc>0.05?gc:0;reserveBal=reserveBal-ra+surplusToReserves;var fp=gc+ra,ib=fp>=-0.05;var resTarget=ae*0.30,targetMet=reserveBal>=resTarget;yr.push(Object.assign({},d,{adjRev:ar,adjExp:ae,rawGap:rg,riskImpact:im.riskImpact,riskExpReduction:im.riskExpReduction,riskExpIncrease:im.riskExpIncrease,oppImpact:im.oppImpact,thisYearCutPct:tcp,cumulativeCutPct:ccp,cumulativeSavings:cs,gapAfterCuts:gc,useReserves:ur,reserveAmount:ra,surplusToReserves:surplusToReserves,finalPosition:fp,isBalanced:ib,isFY32:f32,reserveBal:reserveBal,resTarget:resTarget,targetMet:targetMet}));});
+  var cd=yr.map(function(y){return{year:y.year,exp:y.adjExp,adjRev:y.adjRev,balanced:y.useReserves?y.adjExp:y.adjRev}});
+  var av=cd.reduce(function(a,d){return a.concat([d.exp,d.adjRev,d.balanced])},[]);
+  var ymn=Math.floor(Math.min.apply(null,av)/5)*5-5,ymx=Math.ceil(Math.max.apply(null,av)/5)*5+5;
+  function doReset(){sRT({vlf:"FY27",vlf2:"Off",trsa:"Off",trsa_repay:"Off",eraf:"Off",cardroom:"Off"});sOT({measure6:"Off",measure35:"Off",measure1:"Off"});sYC({FY27:0,FY28:0,FY29:0,FY30:0,FY31:0,FY32:0});sYR({FY27:false,FY28:false,FY29:false,FY30:false,FY31:false});setRiskOpen(false);setOppOpen(false);}
+  var tw=M?44:28,th=M?24:14,tr=M?18:10,tk=M?3:2,ton=M?23:16;
+  var stickyTd=M?{position:"sticky",left:0,background:CARD_BG,zIndex:2}:{};
+  var stickyTdAlt=M?{position:"sticky",left:0,background:"rgba(242,243,245,1)",zIndex:2}:{};
+
+  return <div style={{fontFamily:"'IBM Plex Sans','Segoe UI',sans-serif",background:DARK,color:WHITE,minHeight:"100vh",display:"flex",flexDirection:"column",padding:M?"6px 8px":"8px 12px"}}>
+
+    {!disclaimerAccepted&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:9999,background:"rgba(0,0,0,0.55)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",padding:M?12:20}}>
+      <div style={{background:"#ffffff",borderRadius:14,maxWidth:560,width:"100%",padding:M?"24px 20px":"36px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.25)",border:"1px solid #e2e8f0",maxHeight:M?"90vh":undefined,overflow:M?"auto":undefined}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:M?14:20}}>
+          <div style={{width:40,height:40,borderRadius:10,background:AMBER+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:33}}>&#x26A0;</div>
+          <div style={{fontSize:M?24:33,fontWeight:800,color:"#1e293b"}}>Important Disclaimer</div>
+        </div>
+        <div style={{fontSize:M?16:21,lineHeight:1.7,color:"#475569",marginBottom:M?18:24}}>
+          <p style={{marginBottom:12}}>This dashboard is provided <strong style={{color:"#1e293b"}}>for illustrative and educational purposes only</strong>. It is a scenario estimator designed to help visualize potential fiscal outcomes under different assumptions.</p>
+          <p style={{marginBottom:12}}>This tool is <strong style={{color:RED}}>not a financial model</strong> and should not be used as the basis for making financial, budgetary, or policy decisions.</p>
+          <p style={{marginBottom:0}}>By proceeding, you acknowledge that this dashboard is solely an exploratory tool and that any decisions should rely on comprehensive analysis.</p>
+        </div>
+        <button onClick={function(){setDisclaimerAccepted(true)}} style={{padding:M?"14px 24px":"12px 32px",borderRadius:8,border:"none",background:"#1e293b",color:"#ffffff",cursor:"pointer",fontSize:22,fontWeight:700,width:M?"100%":undefined}}>I Understand &amp; Accept</button>
+      </div>
+    </div>}
+
+    <div style={{display:"flex",flexDirection:M?"column":"row",justifyContent:"space-between",alignItems:M?"stretch":"center",marginBottom:6,paddingBottom:4,borderBottom:"1px solid "+BORDER,gap:M?6:0}}>
+      <div><div style={{fontSize:M?14:22,textTransform:"uppercase",letterSpacing:2,color:GRAY}}>City of San Bruno</div><div style={{fontSize:M?26:51,fontWeight:800,lineHeight:1.1}}>General Fund Forecast &#x2014; What&nbsp;If?</div></div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <button onClick={function(){setShowGuide(!showGuide)}} style={{padding:M?"10px 14px":"8px 16px",borderRadius:6,border:"1px solid "+BORDER,background:showGuide?"#1e293b":"#f8fafc",color:showGuide?"#fff":"#64748b",cursor:"pointer",fontSize:M?16:20,fontWeight:600,flex:M?1:undefined}}>
+          {showGuide?"\u2715 Hide Guide":"? How to Use"}
+        </button>
+        <button onClick={doReset} style={{padding:M?"10px 16px":"8px 20px",borderRadius:6,border:"none",background:"#34d399",color:"#ffffff",cursor:"pointer",fontSize:M?16:24,fontWeight:700}}>Reset</button>
+      </div>
+    </div>
+
+    {showGuide&&<div style={{marginBottom:12,padding:M?"14px":"20px 24px",background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0"}}>
+      <div style={{fontSize:M?15:21,color:"#475569",lineHeight:1.6,marginBottom:16}}>
+        This dashboard visualizes the City of San Bruno's General Fund surplus or deficit over six fiscal years (FY27{"\u2013"}FY32). The baseline includes the $3M VLF Backfill loss already incorporated in the FY27 draft budget. The City has a structural budget deficit meaning that the growth in expenditures outpaces growth in revenue. Toggle revenue risks, add revenue measures, cut services by a percentage, and use reserves to plot a path to a structurally balanced budget.
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:M?"1fr":"1fr 1fr 1fr 1fr",gap:M?8:12,marginBottom:16}}>
+        {[{n:1,t:"Revenue Risks",c:RED,d:"Click the red bar to toggle revenue risks and pick the year each hits."},{n:2,t:"Revenue Opportunities",c:GREEN,d:"Click the green bar to add voter-approved revenue measures for 2026, 2028, or 2030 elections."},{n:3,t:"Service Cuts",c:AMBER,d:"Use +/\u2013 to set percent service reductions. 1% \u2248 1.8 FTEs \u2248 $410K/yr. Cuts compound forward."},{n:4,t:"Use Reserves",c:PURPLE,d:"Toggle reserves on to cover a deficit year. Reserves cannot be used in FY32."}].map(function(g){
+          return <div key={g.n} style={{padding:M?"10px 12px":"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+g.c}}>
+            <div style={{fontSize:M?24:33,fontWeight:800,color:g.c,marginBottom:2}}>{g.n}</div>
+            <div style={{fontSize:M?16:20,fontWeight:700,color:"#1e293b",marginBottom:4}}>{g.t}</div>
+            <div style={{fontSize:M?14:16,color:"#64748b",lineHeight:1.5}}>{g.d}</div>
+          </div>;
+        })}
+      </div>
+      <div style={{display:"flex",flexDirection:M?"column":"row",gap:M?4:24,fontSize:M?14:18,color:"#64748b"}}>
+        <span><strong style={{color:RED}}>Structural Gap:</strong> Revenue +2.9%/yr vs Expenditures +4.0%/yr</span>
+        <span><strong style={{color:AMBER}}>Key Insight:</strong> Early service cuts are 2.5x more effective than late action</span>
+      </div>
+    </div>}
+
+    <div style={{position:"relative",marginBottom:6}}>
+      <div style={{display:"flex",flexDirection:M?"column":"row",gap:6,marginBottom:6}}>
+        <button onClick={function(){setRiskOpen(!riskOpen);if(!riskOpen)setOppOpen(false)}} style={{flex:1,padding:M?"14px 16px":"10px 16px",borderRadius:8,border:"none",background:RED,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:M?18:21,fontWeight:700,color:"#ffffff",textTransform:"uppercase",letterSpacing:1.5}}>Revenue Risks</span>
+            <span style={{fontSize:M?16:20,color:"rgba(255,255,255,0.7)"}}>{Object.values(rT).filter(function(v){return v!=="Off"}).length}/{riskItems.length}</span>
+          </div>
+          <span style={{fontSize:24,color:"#ffffff",display:"inline-block",transform:riskOpen?"rotate(180deg)":"rotate(0deg)"}}>{"\u25BC"}</span>
+        </button>
+        <button onClick={function(){setOppOpen(!oppOpen);if(!oppOpen)setRiskOpen(false)}} style={{flex:1,padding:M?"14px 16px":"10px 16px",borderRadius:8,border:"none",background:GREEN,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:M?18:21,fontWeight:700,color:"#ffffff",textTransform:"uppercase",letterSpacing:1.5}}>Opportunities</span>
+            <span style={{fontSize:M?16:20,color:"rgba(255,255,255,0.7)"}}>{Object.values(oT).filter(function(v){return v!=="Off"}).length}/{opportunityItems.length}</span>
+          </div>
+          <span style={{fontSize:24,color:"#ffffff",display:"inline-block",transform:oppOpen?"rotate(180deg)":"rotate(0deg)"}}>{"\u25BC"}</span>
+        </button>
+      </div>
+
+      {(Object.values(rT).some(function(v){return v!=="Off"})||Object.values(oT).some(function(v){return v!=="Off"}))&&<div style={{display:"flex",flexDirection:M?"column":"row",gap:M?4:8,marginBottom:6}}>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          {riskItems.filter(function(r){return rT[r.id]!=="Off"}).map(function(r){return <span key={r.id} style={{fontSize:M?14:18,padding:M?"4px 10px":"3px 10px",borderRadius:20,background:RED+"12",border:"1px solid "+RED+"25",color:"#64748b",display:"inline-flex",alignItems:"center",gap:4}}>{r.label} <span style={{color:RED,fontWeight:700}}>{rT[r.id]}</span></span>;})}
+          {opportunityItems.filter(function(o){return oT[o.id]!=="Off"}).map(function(o){return <span key={o.id} style={{fontSize:M?14:18,padding:M?"4px 10px":"3px 10px",borderRadius:20,background:GREEN+"12",border:"1px solid "+GREEN+"25",color:"#64748b",display:"inline-flex",alignItems:"center",gap:4}}>{o.label} <span style={{color:GREEN,fontWeight:700}}>{oT[o.id]}</span></span>;})}
+        </div>
+      </div>}
+
+      <div style={{background:CARD_BG,border:"1px solid "+BORDER,borderRadius:8,padding:M?"8px 4px":"12px 8px"}}>
+        <div style={{fontSize:M?16:24,textTransform:"uppercase",letterSpacing:1.5,color:GRAY,fontWeight:600,marginBottom:6,padding:M?"0 4px":0}}>Revenue vs Expenditure Projection</div>
+        <div style={{fontSize:M?14:22,color:GRAY,marginBottom:6,padding:M?"0 4px":0}}>
+          <span style={{color:RED_LIGHT,fontWeight:600}}>{"\u25A0"}</span> Exp
+          <span style={{marginLeft:10,color:GREEN,fontWeight:600}}>{"\u25A0"}</span> Rev
+          {tru>0&&<span><span style={{marginLeft:10,color:PURPLE,fontWeight:600}}>{"\u25A0"}</span> +Reserves</span>}
+        </div>
+        <SvgChart chartData={cd} yMin={ymn} yMax={ymx} totalReservesUsed={tru} M={M}/>
+      </div>
+
+      {riskOpen&&<div style={{position:M?"fixed":"absolute",top:M?0:52,left:0,right:0,bottom:M?0:undefined,zIndex:20,borderRadius:M?0:8,border:M?"none":"1px solid "+RED+"33",background:M?"#ffffff":"rgba(255,255,255,0.92)",backdropFilter:M?undefined:"blur(12px)",WebkitBackdropFilter:M?undefined:"blur(12px)",boxShadow:M?undefined:"0 8px 32px rgba(0,0,0,0.12)",padding:M?"16px 12px":"16px",overflow:"auto",maxHeight:M?"100vh":"calc(100% - 58px)"}}>
+        {M&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,position:"sticky",top:0,background:"#fff",paddingBottom:8,borderBottom:"1px solid "+BORDER}}>
+          <span style={{fontSize:20,fontWeight:700,color:RED,textTransform:"uppercase"}}>Revenue Risks</span>
+          <button onClick={function(){setRiskOpen(false)}} style={{width:44,height:44,borderRadius:8,border:"1px solid "+BORDER,background:"#f8fafc",color:GRAY,cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center"}}>{"\u2715"}</button>
+        </div>}
+        <div style={{display:M?"flex":"grid",flexDirection:"column",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <TimingPanel title={M?"":"Risks"} items={riskItems.filter(function(r){return ["vlf","trsa","cardroom"].indexOf(r.id)>=0})} timings={rT} onTimingChange={setRT} accentColor={RED} M={M}/>
+          <TimingPanel title={M?"":"Risks (cont.)"} items={riskItems.filter(function(r){return ["vlf2","eraf","trsa_repay"].indexOf(r.id)>=0})} timings={rT} onTimingChange={setRT} accentColor={RED} M={M}/>
+        </div>
+      </div>}
+      {oppOpen&&<div style={{position:M?"fixed":"absolute",top:M?0:52,left:0,right:0,bottom:M?0:undefined,zIndex:20,borderRadius:M?0:8,border:M?"none":"1px solid "+GREEN+"33",background:M?"#ffffff":"rgba(255,255,255,0.92)",backdropFilter:M?undefined:"blur(12px)",WebkitBackdropFilter:M?undefined:"blur(12px)",boxShadow:M?undefined:"0 8px 32px rgba(0,0,0,0.12)",padding:M?"16px 12px":"16px",overflow:"auto",maxHeight:M?"100vh":undefined}}>
+        {M&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,position:"sticky",top:0,background:"#fff",paddingBottom:8,borderBottom:"1px solid "+BORDER}}>
+          <span style={{fontSize:20,fontWeight:700,color:GREEN,textTransform:"uppercase"}}>Revenue Opportunities</span>
+          <button onClick={function(){setOppOpen(false)}} style={{width:44,height:44,borderRadius:8,border:"1px solid "+BORDER,background:"#f8fafc",color:GRAY,cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center"}}>{"\u2715"}</button>
+        </div>}
+        <TimingPanel title={M?"":"Opportunities"} items={opportunityItems} timings={oT} onTimingChange={setOT} accentColor={GREEN} yearOptions={ELECTION_YEARS} M={M}/>
+      </div>}
+    </div>
+
+    <div style={{background:CARD_BG,border:"1px solid "+BORDER,borderRadius:8,padding:M?"8px 6px":"10px 14px"}}>
+      <div style={{fontSize:M?14:24,textTransform:"uppercase",letterSpacing:M?0.5:1.5,color:AMBER,fontWeight:700,marginBottom:8}}>Annual Balancing &#x2014; Cuts Compound Forward</div>
+      <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:M?14:24,minWidth:M?560:undefined}}>
+          <thead><tr>
+            <th style={{textAlign:"left",padding:"4px",borderBottom:"2px solid "+BORDER,color:GRAY,fontSize:M?12:22,width:M?90:140,...stickyTd}}></th>
+            {yr.map(function(y){return <th key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"2px solid "+(y.isBalanced?GREEN:RED)+"44",color:y.isBalanced?GREEN:WHITE,fontWeight:700,fontSize:M?14:27,whiteSpace:"nowrap"}}>{y.year}{y.isBalanced?" \u2713":""}</th>})}
+          </tr></thead>
+          <tbody>
+            <tr style={{background:"rgba(0,0,0,0.025)"}}><td style={{padding:"4px",color:GRAY,fontSize:M?12:24,borderBottom:"1px solid "+BORDER+"22",...stickyTdAlt}}>Begin Surplus/(Deficit)</td>
+              {yr.map(function(y){return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22",fontWeight:700,color:y.rawGap>=0?GREEN:RED_LIGHT,fontSize:M?14:27,whiteSpace:"nowrap"}}>{fmtSigned(y.rawGap)}</td>})}</tr>
+            <tr><td style={{padding:"4px",color:AMBER,fontSize:M?12:24,fontWeight:600,borderBottom:"1px solid "+BORDER+"22",...stickyTd}}>Service cuts</td>
+              {yr.map(function(y){return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22"}}><Stepper value={y.thisYearCutPct} onChange={function(v){sYC(function(p){var n=Object.assign({},p);n[y.year]=v;return n})}} min={0} max={25} step={1} color={AMBER} M={M}/></td>})}</tr>
+            <tr style={{background:"rgba(0,0,0,0.025)"}}><td style={{padding:"4px",color:GRAY,fontSize:M?12:24,borderBottom:"1px solid "+BORDER+"22",...stickyTdAlt}}>Cumul. reduction</td>
+              {yr.map(function(y){return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22",color:y.cumulativeCutPct>0?AMBER:GRAY,fontWeight:700,fontSize:M?14:26}}>{y.cumulativeCutPct>0?y.cumulativeCutPct+"%":"\u2014"}</td>})}</tr>
+            <tr><td style={{padding:"4px",color:GRAY,fontSize:M?12:24,borderBottom:"1px solid "+BORDER+"22",...stickyTd}}>Adj. Surplus/(Deficit)</td>
+              {yr.map(function(y){return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22",fontWeight:700,color:y.gapAfterCuts>=0?GREEN:RED_LIGHT,fontSize:M?14:27,whiteSpace:"nowrap"}}>{fmtSigned(y.gapAfterCuts)}</td>})}</tr>
+            <tr style={{background:"rgba(0,0,0,0.025)"}}><td style={{padding:"4px",color:PURPLE,fontSize:M?12:24,fontWeight:600,borderBottom:"1px solid "+BORDER+"22",...stickyTdAlt}}>Use reserves</td>
+              {yr.map(function(y){
+                if(y.isFY32)return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22",fontSize:M?12:22,color:AMBER}}>locked</td>;
+                if(y.gapAfterCuts>=0)return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22",color:GREEN,fontSize:M?14:24}}>{"\u2014"}</td>;
+                var we=!y.useReserves&&Math.abs(y.gapAfterCuts)>y.reserveBal;
+                return <td key={y.year} style={{textAlign:"center",padding:"4px",borderBottom:"1px solid "+BORDER+"22"}}>
+                  <div onClick={function(){if(!we)sYR(function(p){var n=Object.assign({},p);n[y.year]=!p[y.year];return n})}} style={{cursor:we?"default":"pointer",opacity:we?0.4:1,display:"inline-block",padding:M?"8px 0":"0"}}>
+                    <div style={{width:tw,height:th,borderRadius:th/2,background:y.useReserves?PURPLE:"#2a2a3a",position:"relative",margin:"0 auto"}}><div style={{width:tr,height:tr,borderRadius:"50%",background:"#fff",position:"absolute",top:tk,left:y.useReserves?ton:tk,transition:"left 0.2s"}}/></div>
+                    {y.useReserves&&<div style={{fontSize:M?14:22,color:PURPLE,marginTop:1}}>{fmt(y.reserveAmount)}</div>}
+                  </div></td>;})}</tr>
+            <tr style={{borderTop:"2px solid "+BORDER}}><td style={{padding:"5px 4px",fontWeight:700,color:WHITE,fontSize:M?12:26,...stickyTd}}>Ending Surplus/(Deficit)</td>
+              {yr.map(function(y){return <td key={y.year} style={{textAlign:"center",padding:"5px 4px"}}>
+                <div style={{fontSize:M?14:22,fontWeight:800,color:y.isBalanced?GREEN:RED_LIGHT}}>{y.isBalanced?"\u2713":"("+fmt(Math.abs(y.finalPosition))+")"}</div>
+                {y.isBalanced&&y.finalPosition>0.05&&<div style={{fontSize:M?12:21,color:GREEN}}>{fmt(y.finalPosition)}</div>}
+              </td>})}</tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style={{marginTop:4,padding:"2px 0",borderTop:"1px solid "+BORDER,fontSize:21,color:"#999",textAlign:"center"}}></div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<ForecastDashboard/>);
+  </script>
+</body>
+</html>
