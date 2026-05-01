@@ -20,7 +20,7 @@
 <body>
   <div id="root"><div id="loading"><h2>Loading...</h2></div></div>
   <script type="text/babel">
-const { useState, useEffect, useCallback, Fragment } = React;
+const { useState, useCallback, Fragment } = React;
 
 const DARK="#ffffff",CARD_BG="#f5f6f8",BORDER="#d0d5dd",RED="#e63946",RED_LIGHT="#dc2626",AMBER="#d97706",GREEN="#0f766e",GREEN_LIGHT="#0d9488",PURPLE="#7c3aed",GRAY="#4b5563",WHITE="#111827";
 const RESERVE_BASE=50.0,RESERVE_ANNUAL_GROWTH=4.0;
@@ -30,12 +30,12 @@ const departments=[{id:"police",label:"Police",sb:17.34,ftes:72},{id:"fire",labe
 const totalSB=departments.reduce((s,d)=>s+d.sb,0);
 const totalFTEs=departments.reduce((s,d)=>s+d.ftes,0);
 const riskItems=[
-  {id:"vlf",label:"VLF Backfill",amount:3.0,expReduction:0,color:RED,detail:"$3M revenue loss",info:"Vehicle License Fee (VLF) Backfill is state funding that replaced vehicle license fee revenue after the state reduced the VLF rate. If the state eliminates this backfill, San Bruno loses approximately $3M in annual General Fund revenue."},
-  {id:"vlf2",label:"VLF Backfill II",amount:4.0,expReduction:0,color:RED,detail:"Additional $4M VLF revenue loss",info:"A second tranche of VLF Backfill funding at risk of state reduction. This represents an additional $4M annual revenue loss beyond the base VLF Backfill scenario, reflecting deeper potential state budget cuts."},
-  {id:"trsa",label:"TRSA",amount:8.0,expReduction:4.0,color:RED,detail:"$8M revenue loss, $4M lower reserve transfer, (net \u2013$4M)",info:"The Triple Flip / TRSA (Tax Revenue Swap Agreement) involves state-local revenue exchanges tied to sales tax and property tax. If unwound, the city loses $8M in revenue but also reduces its $4M annual reserve transfer obligation, resulting in a net $4M impact."},
-  {id:"trsa_repay",label:"TRSA Repayment",amount:0,expBase:43.0,expPerYear:8.0,oneTime:true,color:RED,detail:"One-time repayment: $43M FY27 + $8M per year collected",info:"If the TRSA is unwound, the city may be required to make a one-time repayment of accumulated obligations. The base repayment is $43M in FY27, increasing by $8M for each additional year the agreement remains in place before termination."},
-  {id:"eraf",label:"Excess ERAF",amount:2.0,expReduction:0,color:RED,detail:"$2M revenue loss",info:"Excess ERAF (Educational Revenue Augmentation Fund) returns occur when county property tax revenue exceeds what schools need. The excess flows back to cities. If the state changes this formula or redirects funds, San Bruno loses approximately $2M annually."},
-  {id:"cardroom",label:"Cardroom",amount:3.4,expReduction:0,color:RED,detail:"$3.4M revenue loss",info:"Cardroom revenue comes from taxes on local card room operations. Regulatory changes, business closures, or shifts in gaming policy could eliminate this $3.4M annual revenue stream from the General Fund."}
+  {id:"vlf",label:"VLF Backfill",amount:3.0,expReduction:0,color:RED,detail:"$3M revenue loss",info:"Vehicle License Fee (VLF) Backfill is state funding that replaced VLF revenue after the state reduced the VLF rate, at the expense of cities. The state promised to make cities whole for the loss using a formula that adversely affects San Mateo County and all cities in the county. As a consequence, the City expects to lose all of the VLF Backfill revenue in the forecast period unless the state fails to fix the broken formula. The City expects to lose approximately $3M in annual General Fund revenue beginning in FY27."},
+  {id:"vlf2",label:"VLF Backfill II",amount:4.0,expReduction:0,color:RED,detail:"Additional $4M VLF revenue loss",info:"Absent the state fixing the VLF backfill formula, the City will lose an additional $4 million in the forecast timeframe."},
+  {id:"trsa",label:"TRSA",amount:8.0,expReduction:4.0,color:RED,detail:"$8M revenue loss, $4M lower reserve transfer, (net \u2013$4M)",info:"The City is currently in litigation challenging the state's decision to takeaway $8 million annually of sales tax revenue resulting from a tax revenue sharing agreement (TRSA). If the City loses the lawsuit, the City will lose $8 million per year in revenue, half of which is used to pay for services and the other half held in reserve."},
+  {id:"trsa_repay",label:"TRSA Repayment",amount:0,expBase:43.0,expPerYear:8.0,oneTime:true,color:RED,detail:"One-time repayment: $43M FY27 + $8M per year collected",info:"If the City loses the lawsuit against the state, the City will be required to return all TRSA revenue collected. The total amount collected since the TRSA inception is $43M and the amount increases by $8M for each additional year the TRSA revenue is allocated to San Bruno."},
+  {id:"eraf",label:"Excess ERAF",amount:2.0,expReduction:0,color:RED,detail:"$2M revenue loss",info:"Excess ERAF (Educational Revenue Augmentation Fund) revenue totaling $2 million per year is returned to the due to broken state formula affecting state funding to schools. The Excess ERAF revenue is in jeopardy. The County of San Mateo is appealing the State Controller's finding, however, if the appeal is denied, the City is at risk of losing up to $2 million annually."},
+  {id:"cardroom",label:"Cardroom",amount:3.4,expReduction:0,color:RED,detail:"$3.4M revenue loss",info:"The City receives $3.4 million in revenue from the local cardroom through taxes and reimbursements. The state created opportunities for litigation against Cardrooms across the state and may impose regulatory changes that cause cardroom closures which could eliminate $3.4M in annual revenue to the General Fund."}
 ];
 const opportunityItems=[
   {id:"measure6",label:"$7.0M Revenue Measure",amount:7.0,growth:0.04,color:GREEN,detail:"Major tax measure, grows 4.0%/yr.",info:"A major local tax ballot measure projected to generate $7.0M in its first full year. Revenue grows at 4.0% annually, keeping pace with expenditure growth. Requires voter approval at a general election (2026, 2028, or 2030)."},
@@ -189,24 +189,6 @@ function ForecastDashboard(){
   var[oppOpen,setOppOpen]=useState(false);
   var[showGuide,setShowGuide]=useState(true);
   var[disclaimerAccepted,setDisclaimerAccepted]=useState(false);
-  var[visitorCount,setVisitorCount]=useState(null);
-  useEffect(function(){
-    async function trackVisit(){
-      try{
-        var result=await window.storage.get("visitor_count",true);
-        var count=result?parseInt(result.value,10)||0:0;
-        count++;
-        await window.storage.set("visitor_count",String(count),true);
-        setVisitorCount(count);
-      }catch(e){
-        try{
-          await window.storage.set("visitor_count","1",true);
-          setVisitorCount(1);
-        }catch(e2){setVisitorCount(null);}
-      }
-    }
-    trackVisit();
-  },[]);
   var setRT=useCallback(function(id,yr){sRT(function(p){var n=Object.assign({},p);n[id]=yr;return n});setRiskOpen(false)},[]);
   var setOT=useCallback(function(id,yr){sOT(function(p){var n=Object.assign({},p);n[id]=yr;return n});setOppOpen(false)},[]);
 
@@ -260,8 +242,8 @@ function ForecastDashboard(){
         </div>
         <div style={{fontSize:14,lineHeight:1.7,color:"#475569",marginBottom:24}}>
           <p style={{marginBottom:12}}>This dashboard is provided <strong style={{color:"#1e293b"}}>for illustrative and educational purposes only</strong>. It is a scenario estimator designed to help visualize potential fiscal outcomes under different assumptions.</p>
-          <p style={{marginBottom:12}}>This tool is <strong style={{color:RED}}>not a financial model</strong> and should not be used as the basis for making financial, budgetary, or policy decisions. The projections, figures, and scenarios presented are simplified estimates and do not account for all variables that affect municipal finance.</p>
-          <p style={{marginBottom:0}}>By proceeding, you acknowledge and accept that this dashboard is solely an exploratory tool and that any decisions should rely on comprehensive analysis by qualified financial professionals.</p>
+          <p style={{marginBottom:12}}>This tool is <strong style={{color:RED}}>not a financial model</strong> and should not be used as the basis for making financial, budgetary, or policy decisions. The projections, figures, and scenarios presented are simplified estimates and do not account for all variables that affect San Bruno finances.</p>
+          <p style={{marginBottom:0}}>By proceeding, you acknowledge and accept that this dashboard is solely an exploratory tool and that any decisions should rely on comprehensive analysis.</p>
         </div>
         <div style={{display:"flex",gap:12,justifyContent:"flex-end"}}>
           <button onClick={function(){setDisclaimerAccepted(true)}} style={{padding:"12px 32px",borderRadius:8,border:"none",background:"#1e293b",color:"#ffffff",cursor:"pointer",fontSize:15,fontWeight:700,letterSpacing:0.3,transition:"all 0.15s"}}>
@@ -283,34 +265,33 @@ function ForecastDashboard(){
 
     {showGuide&&<div style={{marginBottom:12,padding:"20px 24px",background:"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0"}}>
       <div style={{fontSize:14,color:"#475569",lineHeight:1.6,marginBottom:16}}>
-        This dashboard models the General Fund over six fiscal years (FY27{"\u2013"}FY32). Toggle risks, add revenue measures, adjust cuts, and use reserves to find a path to structural balance.
+        This dashboard models the General Fund over six fiscal years (FY27{"\u2013"}FY32). Due to expenditures growing faster than revenue, the City has a structural budget deficit. Absent new revenues or service reductions the City will eventually run out of money. Toggle revenue risks, add revenue measures, cut services by a percentage, and use reserves to plot a path to structurally balanced budget.
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:16}}>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+RED}}>
           <div style={{fontSize:22,fontWeight:800,color:RED,marginBottom:2}}>1</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Revenue Risks</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Click the red bar. Select the year each risk hits. The chart and table update instantly.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>The State of California's action threaten to drive the City of San Bruno into fiscal crisis, making the structural deficit worse. Click the red bar to see the revenue risks and pick the year each risk hits. Multiple revenue losses can occur in one year. The chart and table update instantly.</div>
         </div>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+GREEN}}>
           <div style={{fontSize:22,fontWeight:800,color:GREEN,marginBottom:2}}>2</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Revenue Opportunities</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Click the green bar. Pick an election year (2026, 2028, 2030). Revenue starts the next fiscal year.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>One option to balance the budget is voter approval of new revenue sources. Click the green bar to see the potential revenue measures which can be placed on the 2026, 2028, or 2030 ballot. Select no more than one revenue for each election. When you select a revenue measure this will assume voter approval. The chart and table update instantly.</div>
         </div>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+AMBER}}>
           <div style={{fontSize:22,fontWeight:800,color:AMBER,marginBottom:2}}>3</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Service Cuts</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Use +/{"\u2013"} buttons. 1% {"\u2248"} 1.8 FTEs {"\u2248"} $410K/yr. Cuts compound forward {"\u2014"} earlier = more savings.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Another option to balance the budget is by reducing services. Service cuts are the only way to structurally balance the budget absent new revenue sources. Use +/{"\u2013"} buttons to set the percent service reductions. Note - 1% {"\u2248"} 1.8 employees totaling {"\u2248"} $410K/yr. Service cuts compound forward meaning the earlier the cuts, the greater long-term savings. The chart and table update instantly.</div>
         </div>
         <div style={{padding:"14px 16px",borderRadius:8,background:"#fff",border:"1px solid #e2e8f0",borderTop:"3px solid "+PURPLE}}>
           <div style={{fontSize:22,fontWeight:800,color:PURPLE,marginBottom:2}}>4</div>
           <div style={{fontSize:13,fontWeight:700,color:"#1e293b",marginBottom:4}}>Use Reserves</div>
-          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Toggle on for deficit years. Surpluses auto-add. FY32 locked {"\u2014"} must balance without reserves. Target: 30%.</div>
+          <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>Reserves can be used to fully or partially balance a deficit budget, but only temporarily. If toggled on, reserves will only be used in the year toggled and will not help future year deficits. The chart and table update instantly. Because reserves are finite, this exercise does not allow use of reserves in FY32.</div>
         </div>
       </div>
       <div style={{display:"flex",gap:24,fontSize:12,color:"#64748b"}}>
         <span><strong style={{color:RED}}>Structural Gap:</strong> Revenue +2.1%/yr vs Expenditures +4.0%/yr</span>
-        <span><strong style={{color:GREEN}}>Reserve Target:</strong> 30% of expenditures</span>
-        <span><strong style={{color:AMBER}}>Key Insight:</strong> Early action is 2.5x more effective than late action</span>
+        <span><strong style={{color:AMBER}}>Key Insight:</strong> Early service cust are 2.5x more effective than late action</span>
       </div>
     </div>}
 
@@ -421,7 +402,6 @@ function ForecastDashboard(){
 
     <div style={{marginTop:4,padding:"2px 0",borderTop:"1px solid "+BORDER,fontSize:14,color:"#999",textAlign:"center"}}>
       Forecast FY27-FY32 &#x2022; Cuts compound forward &#x2022; Surpluses add to reserves &#x2022; Reserve target: 30% of expenditures &#x2022; FY32 must balance without reserves
-      {visitorCount!==null&&<div style={{marginTop:4,fontSize:12,color:"#b0b8c4"}}>Visitors: {visitorCount.toLocaleString()}</div>}
     </div>
   </div>;
 }
